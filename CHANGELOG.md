@@ -1,3 +1,12 @@
+
+
+## 1.0.1
+
+- Added standalone `example/main.dart` with usage guide.
+- Enhanced documentation and resolved undocumented constructor warnings.
+- Refactored internal services to private constructors.
+
+
 ## 1.0.0
 
 - Initial release.

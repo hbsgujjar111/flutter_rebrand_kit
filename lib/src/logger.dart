@@ -2,6 +2,8 @@ import 'dart:io';
 
 /// Terminal logger utility for formatting CLI output.
 class Logger {
+  Logger._();
+
   static const _reset = '\x1B[0m';
   static const _green = '\x1B[32m';
   static const _cyan = '\x1B[36m';
@@ -12,13 +14,13 @@ class Logger {
   /// Prints the header banner when the CLI starts.
   static void banner() {
     stdout.writeln(
-      '\n$_cyan$_bold===========================================$_reset',
+      '\n$_cyan$_bold=========================================$_reset',
     );
     stdout.writeln(
-      '$_cyan$_bold    🚀 FLUTTER REBRAND KIT CLI (v1.0.0)    $_reset',
+      '$_cyan$_bold    FLUTTER REBRAND KIT CLI (v1.0.0)    $_reset',
     );
     stdout.writeln(
-      '$_cyan$_bold===========================================$_reset\n',
+      '$_cyan$_bold=========================================$_reset\n',
     );
   }
 

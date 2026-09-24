@@ -1,6 +1,6 @@
 name: flutter_rebrand_kit
 description: An all-in-one CLI tool to rebrand Flutter apps, update package IDs, generate launcher & notification icons, native splash screens, and Play Store graphics.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/hbsgujjar111/flutter_rebrand_kit
 repository: https://github.com/hbsgujjar111/flutter_rebrand_kit
 issue_tracker: https://github.com/hbsgujjar111/flutter_rebrand_kit/issues

@@ -5,12 +5,17 @@ import 'package:path/path.dart' as p;
 import 'logger.dart';
 
 class MetadataService {
+  MetadataService._();
+
   static void updateVersion(String version) {
     final file = File('pubspec.yaml');
     if (!file.existsSync()) return;
 
     var content = file.readAsStringSync();
-    content = content.replaceFirst(RegExp(r'^version:\s*.*$', multiLine: true), 'version: $version');
+    content = content.replaceFirst(
+      RegExp(r'^version:\s*.*$', multiLine: true),
+      'version: $version',
+    );
     file.writeAsStringSync(content);
   }
 
@@ -19,7 +24,10 @@ class MetadataService {
     final manifest = File('android/app/src/main/AndroidManifest.xml');
     if (manifest.existsSync()) {
       var content = manifest.readAsStringSync();
-      content = content.replaceAll(RegExp(r'android:label="[^"]*"'), 'android:label="$name"');
+      content = content.replaceAll(
+        RegExp(r'android:label="[^"]*"'),
+        'android:label="$name"',
+      );
       manifest.writeAsStringSync(content);
     }
 
@@ -34,7 +42,10 @@ class MetadataService {
           '<key>CFBundleDisplayName</key>\n\t<string>$name</string>',
         );
       } else {
-        content = content.replaceFirst('<dict>', '<dict>\n\t<key>CFBundleDisplayName</key>\n\t<string>$name</string>');
+        content = content.replaceFirst(
+          '<dict>',
+          '<dict>\n\t<key>CFBundleDisplayName</key>\n\t<string>$name</string>',
+        );
       }
 
       if (content.contains('<key>CFBundleName</key>')) {
@@ -50,7 +61,10 @@ class MetadataService {
     final webIndex = File('web/index.html');
     if (webIndex.existsSync()) {
       var content = webIndex.readAsStringSync();
-      content = content.replaceAll(RegExp(r'<title>[^<]*</title>'), '<title>$name</title>');
+      content = content.replaceAll(
+        RegExp(r'<title>[^<]*</title>'),
+        '<title>$name</title>',
+      );
       content = content.replaceAll(
         RegExp(r'<meta name="apple-mobile-web-app-title" content="[^"]*">'),
         '<meta name="apple-mobile-web-app-title" content="$name">',
@@ -61,8 +75,14 @@ class MetadataService {
     final webManifest = File('web/manifest.json');
     if (webManifest.existsSync()) {
       var content = webManifest.readAsStringSync();
-      content = content.replaceAll(RegExp(r'"name":\s*"[^"]*"'), '"name": "$name"');
-      content = content.replaceAll(RegExp(r'"short_name":\s*"[^"]*"'), '"short_name": "$name"');
+      content = content.replaceAll(
+        RegExp(r'"name":\s*"[^"]*"'),
+        '"name": "$name"',
+      );
+      content = content.replaceAll(
+        RegExp(r'"short_name":\s*"[^"]*"'),
+        '"short_name": "$name"',
+      );
       webManifest.writeAsStringSync(content);
     }
 
@@ -70,7 +90,10 @@ class MetadataService {
     final winMain = File('windows/runner/main.cpp');
     if (winMain.existsSync()) {
       var content = winMain.readAsStringSync();
-      content = content.replaceAll(RegExp(r'window\.Create\(L"[^"]*"'), 'window.Create(L"$name"');
+      content = content.replaceAll(
+        RegExp(r'window\.Create\(L"[^"]*"'),
+        'window.Create(L"$name"',
+      );
       winMain.writeAsStringSync(content);
     }
 
@@ -91,8 +114,14 @@ class MetadataService {
     final groovyGradle = File('android/app/build.gradle');
     if (groovyGradle.existsSync()) {
       var content = groovyGradle.readAsStringSync();
-      content = content.replaceAll(RegExp(r'applicationId\s+["\x27][^"\x27]+["\x27]'), 'applicationId "$newId"');
-      content = content.replaceAll(RegExp(r'namespace\s+["\x27][^"\x27]+["\x27]'), 'namespace "$newId"');
+      content = content.replaceAll(
+        RegExp(r'applicationId\s+["\x27][^"\x27]+["\x27]'),
+        'applicationId "$newId"',
+      );
+      content = content.replaceAll(
+        RegExp(r'namespace\s+["\x27][^"\x27]+["\x27]'),
+        'namespace "$newId"',
+      );
       groovyGradle.writeAsStringSync(content);
     }
 
@@ -100,8 +129,14 @@ class MetadataService {
     final ktsGradle = File('android/app/build.gradle.kts');
     if (ktsGradle.existsSync()) {
       var content = ktsGradle.readAsStringSync();
-      content = content.replaceAll(RegExp(r'applicationId\s*=\s*["\x27][^"\x27]+["\x27]'), 'applicationId = "$newId"');
-      content = content.replaceAll(RegExp(r'namespace\s*=\s*["\x27][^"\x27]+["\x27]'), 'namespace = "$newId"');
+      content = content.replaceAll(
+        RegExp(r'applicationId\s*=\s*["\x27][^"\x27]+["\x27]'),
+        'applicationId = "$newId"',
+      );
+      content = content.replaceAll(
+        RegExp(r'namespace\s*=\s*["\x27][^"\x27]+["\x27]'),
+        'namespace = "$newId"',
+      );
       ktsGradle.writeAsStringSync(content);
     }
 
@@ -110,7 +145,10 @@ class MetadataService {
     if (manifest.existsSync()) {
       var content = manifest.readAsStringSync();
       if (content.contains('package="')) {
-        content = content.replaceAll(RegExp(r'package="[^"]*"'), 'package="$newId"');
+        content = content.replaceAll(
+          RegExp(r'package="[^"]*"'),
+          'package="$newId"',
+        );
         manifest.writeAsStringSync(content);
       }
     }
@@ -133,7 +171,10 @@ class MetadataService {
     final linuxCMake = File('linux/CMakeLists.txt');
     if (linuxCMake.existsSync()) {
       var content = linuxCMake.readAsStringSync();
-      content = content.replaceAll(RegExp(r'set\(APPLICATION_ID\s+"[^"]*"\)'), 'set(APPLICATION_ID "$newId")');
+      content = content.replaceAll(
+        RegExp(r'set\(APPLICATION_ID\s+"[^"]*"\)'),
+        'set(APPLICATION_ID "$newId")',
+      );
       linuxCMake.writeAsStringSync(content);
     }
   }
@@ -182,7 +223,8 @@ class MetadataService {
       final targetFile = File(p.join(targetDir.path, p.basename(file.path)));
 
       // 3. Move file if destination changed
-      if (p.normalize(p.absolute(file.path)) != p.normalize(p.absolute(targetFile.path))) {
+      if (p.normalize(p.absolute(file.path)) !=
+          p.normalize(p.absolute(targetFile.path))) {
         targetFile.writeAsStringSync(content);
         final oldParent = file.parent;
         try {
@@ -196,7 +238,8 @@ class MetadataService {
   }
 
   static void _pruneEmptyDirectories(Directory dir, Directory boundary) {
-    if (p.normalize(p.absolute(dir.path)) == p.normalize(p.absolute(boundary.path))) {
+    if (p.normalize(p.absolute(dir.path)) ==
+        p.normalize(p.absolute(boundary.path))) {
       return;
     }
     if (dir.existsSync() && dir.listSync().isEmpty) {

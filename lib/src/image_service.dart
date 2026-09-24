@@ -4,7 +4,11 @@ import 'package:image/image.dart' as img;
 
 import 'logger.dart';
 
+/// Service responsible for resizing and generating app icons, splash screens, and store banners.
 class ImageService {
+  ImageService._();
+
+  /// Decodes and validates the master icon image at [path].
   static img.Image loadAndValidateIcon(String path) {
     final file = File(path);
     if (!file.existsSync()) {

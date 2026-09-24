@@ -4,6 +4,8 @@ import 'package:image/image.dart' as img;
 
 /// Handles complete native splash screen configuration across Android & iOS.
 class SplashService {
+  SplashService._();
+
   static void generateNativeSplash(String imagePath, String hexColor) {
     final file = File(imagePath);
     if (!file.existsSync()) {

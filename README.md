@@ -34,7 +34,7 @@ An all-in-one developer CLI tool to rebrand Flutter applications in seconds. Upd
 
 ---
 
-## 🚀 Installation
+## 🔧 Installation
 
 Add `flutter_rebrand_kit` to your `dev_dependencies`:
 
