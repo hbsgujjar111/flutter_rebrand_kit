@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-import 'logger.dart';
-
+/// Service for updating manifest files, package IDs, and app labels across all platforms.
 class MetadataService {
   MetadataService._();
 
+  /// Updates version and build number in `pubspec.yaml`.
   static void updateVersion(String version) {
     final file = File('pubspec.yaml');
     if (!file.existsSync()) return;
@@ -19,9 +19,12 @@ class MetadataService {
     file.writeAsStringSync(content);
   }
 
+  /// Updates app name across Android, iOS, macOS, Web, Windows, and Linux.
   static void updateAppName(String name) {
-    // 1. Android Manifest
-    final manifest = File('android/app/src/main/AndroidManifest.xml');
+    // 1. Android (AndroidManifest.xml)
+    final manifest = File(
+      p.join('android', 'app', 'src', 'main', 'AndroidManifest.xml'),
+    );
     if (manifest.existsSync()) {
       var content = manifest.readAsStringSync();
       content = content.replaceAll(
@@ -31,11 +34,10 @@ class MetadataService {
       manifest.writeAsStringSync(content);
     }
 
-    // 2. iOS Info.plist
-    final plist = File('ios/Runner/Info.plist');
+    // 2. iOS (Info.plist)
+    final plist = File(p.join('ios', 'Runner', 'Info.plist'));
     if (plist.existsSync()) {
       var content = plist.readAsStringSync();
-
       if (content.contains('<key>CFBundleDisplayName</key>')) {
         content = content.replaceAll(
           RegExp(r'<key>CFBundleDisplayName</key>\s*<string>[^<]*</string>'),
@@ -57,8 +59,21 @@ class MetadataService {
       plist.writeAsStringSync(content);
     }
 
-    // 3. Web
-    final webIndex = File('web/index.html');
+    // 3. macOS (AppInfo.xcconfig)
+    final macAppInfo = File(
+      p.join('macos', 'Runner', 'Configs', 'AppInfo.xcconfig'),
+    );
+    if (macAppInfo.existsSync()) {
+      var content = macAppInfo.readAsStringSync();
+      content = content.replaceAll(
+        RegExp(r'^PRODUCT_NAME\s*=\s*.*$', multiLine: true),
+        'PRODUCT_NAME = $name',
+      );
+      macAppInfo.writeAsStringSync(content);
+    }
+
+    // 4. Web (index.html & manifest.json)
+    final webIndex = File(p.join('web', 'index.html'));
     if (webIndex.existsSync()) {
       var content = webIndex.readAsStringSync();
       content = content.replaceAll(
@@ -72,7 +87,7 @@ class MetadataService {
       webIndex.writeAsStringSync(content);
     }
 
-    final webManifest = File('web/manifest.json');
+    final webManifest = File(p.join('web', 'manifest.json'));
     if (webManifest.existsSync()) {
       var content = webManifest.readAsStringSync();
       content = content.replaceAll(
@@ -86,8 +101,8 @@ class MetadataService {
       webManifest.writeAsStringSync(content);
     }
 
-    // 4. Windows
-    final winMain = File('windows/runner/main.cpp');
+    // 5. Windows (main.cpp & Runner.rc)
+    final winMain = File(p.join('windows', 'runner', 'main.cpp'));
     if (winMain.existsSync()) {
       var content = winMain.readAsStringSync();
       content = content.replaceAll(
@@ -97,21 +112,48 @@ class MetadataService {
       winMain.writeAsStringSync(content);
     }
 
-    // 5. Linux
-    final linuxApp = File('linux/my_application.cc');
-    if (linuxApp.existsSync()) {
-      var content = linuxApp.readAsStringSync();
+    final winRc = File(p.join('windows', 'runner', 'Runner.rc'));
+    if (winRc.existsSync()) {
+      var content = winRc.readAsStringSync();
+      content = content.replaceAll(
+        RegExp(r'VALUE "FileDescription", "[^"]*"'),
+        'VALUE "FileDescription", "$name"',
+      );
+      content = content.replaceAll(
+        RegExp(r'VALUE "ProductName", "[^"]*"'),
+        'VALUE "ProductName", "$name"',
+      );
+      winRc.writeAsStringSync(content);
+    }
+
+    // 6. Linux (linux/runner/my_application.cc)
+    final linuxApp = File(p.join('linux', 'runner', 'my_application.cc'));
+    final fallbackLinuxApp = File(p.join('linux', 'my_application.cc'));
+
+    final targetLinuxFile = linuxApp.existsSync()
+        ? linuxApp
+        : (fallbackLinuxApp.existsSync() ? fallbackLinuxApp : null);
+
+    if (targetLinuxFile != null) {
+      var content = targetLinuxFile.readAsStringSync();
+      // Updates standard window title
       content = content.replaceAll(
         RegExp(r'gtk_window_set_title\(window,\s*"[^"]*"\);'),
         'gtk_window_set_title(window, "$name");',
       );
-      linuxApp.writeAsStringSync(content);
+      // Updates GTK HeaderBar title
+      content = content.replaceAll(
+        RegExp(r'gtk_header_bar_set_title\(header_bar,\s*"[^"]*"\);'),
+        'gtk_header_bar_set_title(header_bar, "$name");',
+      );
+      targetLinuxFile.writeAsStringSync(content);
     }
   }
 
+  /// Updates package/bundle ID across Android, iOS, macOS, Windows, and Linux.
   static void updatePackageId(String newId) {
-    // 1. Android build.gradle (Groovy)
-    final groovyGradle = File('android/app/build.gradle');
+    // 1. Android build.gradle (Groovy & Kotlin DSL)
+    final groovyGradle = File(p.join('android', 'app', 'build.gradle'));
     if (groovyGradle.existsSync()) {
       var content = groovyGradle.readAsStringSync();
       content = content.replaceAll(
@@ -125,8 +167,7 @@ class MetadataService {
       groovyGradle.writeAsStringSync(content);
     }
 
-    // 2. Android build.gradle.kts (Kotlin DSL)
-    final ktsGradle = File('android/app/build.gradle.kts');
+    final ktsGradle = File(p.join('android', 'app', 'build.gradle.kts'));
     if (ktsGradle.existsSync()) {
       var content = ktsGradle.readAsStringSync();
       content = content.replaceAll(
@@ -140,35 +181,49 @@ class MetadataService {
       ktsGradle.writeAsStringSync(content);
     }
 
-    // 3. AndroidManifest.xml package attribute (if present)
-    final manifest = File('android/app/src/main/AndroidManifest.xml');
-    if (manifest.existsSync()) {
-      var content = manifest.readAsStringSync();
-      if (content.contains('package="')) {
-        content = content.replaceAll(
-          RegExp(r'package="[^"]*"'),
-          'package="$newId"',
-        );
-        manifest.writeAsStringSync(content);
-      }
-    }
+    // 2. Android Full-Tree File & Folder Migration
+    _migrateFullAndroidPackageTree(newId);
 
-    // 4. Move & Update MainActivity.kt / MainActivity.java
-    _migrateMainActivityDirectory(newId);
-
-    // 5. iOS project.pbxproj
-    final pbxproj = File('ios/Runner.xcodeproj/project.pbxproj');
-    if (pbxproj.existsSync()) {
-      var content = pbxproj.readAsStringSync();
+    // 3. iOS (project.pbxproj)
+    final iosPbxproj = File(
+      p.join('ios', 'Runner.xcodeproj', 'project.pbxproj'),
+    );
+    if (iosPbxproj.existsSync()) {
+      var content = iosPbxproj.readAsStringSync();
       content = content.replaceAll(
         RegExp(r'PRODUCT_BUNDLE_IDENTIFIER\s*=\s*[^;]+;'),
         'PRODUCT_BUNDLE_IDENTIFIER = $newId;',
       );
-      pbxproj.writeAsStringSync(content);
+      iosPbxproj.writeAsStringSync(content);
     }
 
-    // 6. Linux CMakeLists.txt
-    final linuxCMake = File('linux/CMakeLists.txt');
+    // 4. macOS (AppInfo.xcconfig & project.pbxproj)
+    final macAppInfo = File(
+      p.join('macos', 'Runner', 'Configs', 'AppInfo.xcconfig'),
+    );
+    if (macAppInfo.existsSync()) {
+      var content = macAppInfo.readAsStringSync();
+      content = content.replaceAll(
+        RegExp(r'^PRODUCT_BUNDLE_IDENTIFIER\s*=\s*.*$', multiLine: true),
+        'PRODUCT_BUNDLE_IDENTIFIER = $newId',
+      );
+      macAppInfo.writeAsStringSync(content);
+    }
+
+    final macPbxproj = File(
+      p.join('macos', 'Runner.xcodeproj', 'project.pbxproj'),
+    );
+    if (macPbxproj.existsSync()) {
+      var content = macPbxproj.readAsStringSync();
+      content = content.replaceAll(
+        RegExp(r'PRODUCT_BUNDLE_IDENTIFIER\s*=\s*[^;]+;'),
+        'PRODUCT_BUNDLE_IDENTIFIER = $newId;',
+      );
+      macPbxproj.writeAsStringSync(content);
+    }
+
+    // 5. Linux (CMakeLists.txt)
+    final linuxCMake = File(p.join('linux', 'CMakeLists.txt'));
     if (linuxCMake.existsSync()) {
       var content = linuxCMake.readAsStringSync();
       content = content.replaceAll(
@@ -177,63 +232,137 @@ class MetadataService {
       );
       linuxCMake.writeAsStringSync(content);
     }
+
+    // 6. Windows (CMakeLists.txt binary target name)
+    final winCMake = File(p.join('windows', 'CMakeLists.txt'));
+    if (winCMake.existsSync()) {
+      final sanitizedBinary = newId.split('.').last;
+      var content = winCMake.readAsStringSync();
+      content = content.replaceAll(
+        RegExp(r'set\(BINARY_NAME\s+"[^"]*"\)'),
+        'set(BINARY_NAME "$sanitizedBinary")',
+      );
+      winCMake.writeAsStringSync(content);
+    }
   }
 
-  static void _migrateMainActivityDirectory(String newId) {
+  static void _migrateFullAndroidPackageTree(String newId) {
     final mainDir = Directory(p.join('android', 'app', 'src', 'main'));
     if (!mainDir.existsSync()) return;
 
-    final activities = <File>[];
-    for (final entity in mainDir.listSync(recursive: true)) {
-      if (entity is File) {
-        final name = p.basename(entity.path);
-        if (name == 'MainActivity.kt' || name == 'MainActivity.java') {
-          activities.add(entity);
+    final sourceRoots = [
+      Directory(p.join(mainDir.path, 'kotlin')),
+      Directory(p.join(mainDir.path, 'java')),
+    ];
+
+    String? detectedOldPackage;
+
+    for (final root in sourceRoots) {
+      if (!root.existsSync()) continue;
+
+      final sourceFiles = <File>[];
+
+      // ---> THIS IS THE LOOP <---
+      for (final entity in root.listSync(recursive: true)) {
+        if (entity is File &&
+            (entity.path.endsWith('.kt') || entity.path.endsWith('.java'))) {
+          // Never touch Flutter engine generated registrant files
+          final normalized = p.normalize(entity.path);
+          if (normalized.contains(p.join('io', 'flutter'))) {
+            continue;
+          }
+
+          sourceFiles.add(entity);
+
+          if (detectedOldPackage == null) {
+            final content = entity.readAsStringSync();
+            final match = RegExp(
+              r'^\s*package\s+([a-zA-Z0-9_.]+)',
+              multiLine: true,
+            ).firstMatch(content);
+            if (match != null && !match.group(1)!.startsWith('io.flutter')) {
+              detectedOldPackage = match.group(1);
+            }
+          }
         }
       }
-    }
 
-    if (activities.isEmpty) {
-      Logger.warn('No MainActivity found under android/app/src/main');
-      return;
-    }
+      if (sourceFiles.isEmpty || detectedOldPackage == null) continue;
 
-    for (final file in activities) {
-      final isKotlin = file.path.endsWith('.kt');
-      final langFolder = isKotlin ? 'kotlin' : 'java';
-      final langRoot = Directory(p.join(mainDir.path, langFolder));
+      final oldPackageBase = detectedOldPackage;
+      final oldSubPath = oldPackageBase.replaceAll('.', Platform.pathSeparator);
+      final newSubPath = newId.replaceAll('.', Platform.pathSeparator);
 
-      // 1. Update package line in-place
-      var content = file.readAsStringSync();
-      final packageRegex = RegExp(r'^\s*package\s+.*$', multiLine: true);
-      if (packageRegex.hasMatch(content)) {
-        content = content.replaceFirst(packageRegex, 'package $newId');
-      } else {
-        content = 'package $newId\n\n$content';
-      }
-      file.writeAsStringSync(content);
+      for (final file in sourceFiles) {
+        var content = file.readAsStringSync();
 
-      // 2. Prepare new folder path
-      final targetSubPath = newId.replaceAll('.', Platform.pathSeparator);
-      final targetDir = Directory(p.join(langRoot.path, targetSubPath));
-      if (!targetDir.existsSync()) {
-        targetDir.createSync(recursive: true);
-      }
+        content = content.replaceAllMapped(
+          RegExp(
+            r'^\s*package\s+' +
+                RegExp.escape(oldPackageBase) +
+                r'(\.[a-zA-Z0-9_.]+)?',
+            multiLine: true,
+          ),
+          (match) {
+            final sub = match.group(1) ?? '';
+            return 'package $newId$sub';
+          },
+        );
 
-      final targetFile = File(p.join(targetDir.path, p.basename(file.path)));
+        content = content.replaceAllMapped(
+          RegExp(
+            r'^\s*import\s+' +
+                RegExp.escape(oldPackageBase) +
+                r'(\.[a-zA-Z0-9_.*]+)?',
+            multiLine: true,
+          ),
+          (match) {
+            final sub = match.group(1) ?? '';
+            return 'import $newId$sub';
+          },
+        );
 
-      // 3. Move file if destination changed
-      if (p.normalize(p.absolute(file.path)) !=
-          p.normalize(p.absolute(targetFile.path))) {
+        final normalizedFilePath = p.normalize(file.path);
+        final oldPackageDirPath = p.normalize(p.join(root.path, oldSubPath));
+
+        String targetFilePath;
+        if (normalizedFilePath.startsWith(oldPackageDirPath)) {
+          final relativeToOldPackage = p.relative(
+            normalizedFilePath,
+            from: oldPackageDirPath,
+          );
+          targetFilePath = p.join(root.path, newSubPath, relativeToOldPackage);
+        } else {
+          targetFilePath = p.join(root.path, newSubPath, p.basename(file.path));
+        }
+
+        final targetFile = File(targetFilePath);
+        targetFile.parent.createSync(recursive: true);
         targetFile.writeAsStringSync(content);
-        final oldParent = file.parent;
-        try {
-          file.deleteSync();
-          _pruneEmptyDirectories(oldParent, langRoot);
-        } catch (_) {
-          // Handles rare Windows lock edge-cases
+
+        if (p.normalize(p.absolute(file.path)) !=
+            p.normalize(p.absolute(targetFile.path))) {
+          try {
+            file.deleteSync();
+          } catch (_) {}
         }
       }
+
+      final oldDir = Directory(p.join(root.path, oldSubPath));
+      if (oldDir.existsSync()) {
+        _pruneEmptyDirectories(oldDir, root);
+      }
+    }
+
+    final manifest = File(p.join(mainDir.path, 'AndroidManifest.xml'));
+    if (manifest.existsSync() && detectedOldPackage != null) {
+      var content = manifest.readAsStringSync();
+      content = content.replaceAll(
+        'package="$detectedOldPackage"',
+        'package="$newId"',
+      );
+      content = content.replaceAll('"$detectedOldPackage.', '"$newId.');
+      manifest.writeAsStringSync(content);
     }
   }
 

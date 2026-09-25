@@ -17,7 +17,7 @@ class Logger {
       '\n$_cyan$_bold=========================================$_reset',
     );
     stdout.writeln(
-      '$_cyan$_bold    FLUTTER REBRAND KIT CLI (v1.0.0)    $_reset',
+      '$_cyan$_bold    FLUTTER REBRAND KIT CLI (v1.1.0)    $_reset',
     );
     stdout.writeln(
       '$_cyan$_bold=========================================$_reset\n',

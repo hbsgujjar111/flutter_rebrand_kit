@@ -29,12 +29,27 @@ class ImageService {
     return image;
   }
 
-  /// Generates Android Legacy + Adaptive Icons and ALL 20 standard iOS icons.
-  static void generateLauncherIcons(String iconPath, String bgColorHex) {
+  /// Generates Android Legacy, Adaptive (with image/color bg & Android 13 monochrome), and iOS icons.
+  static void generateLauncherIcons({
+    required String iconPath,
+    required String bgColorHex,
+    String? bgImagePath,
+    String? monochromeIconPath,
+  }) {
     final baseImage = loadAndValidateIcon(iconPath);
     final bgRgb = _parseHexColor(bgColorHex);
 
-    // 1. Android Legacy Mipmaps (Composited over background color to prevent black borders)
+    img.Image? bgImage;
+    if (bgImagePath != null) {
+      bgImage = loadAndValidateIcon(bgImagePath);
+    }
+
+    img.Image? customMonochrome;
+    if (monochromeIconPath != null) {
+      customMonochrome = loadAndValidateIcon(monochromeIconPath);
+    }
+
+    // 1. Android Legacy Mipmaps
     final androidDensities = {
       'mipmap-mdpi': 48,
       'mipmap-hdpi': 72,
@@ -45,7 +60,17 @@ class ImageService {
 
     for (final entry in androidDensities.entries) {
       final canvas = img.Image(width: entry.value, height: entry.value);
-      img.fill(canvas, color: bgRgb);
+
+      if (bgImage != null) {
+        final resizedBg = img.copyResize(
+          bgImage,
+          width: entry.value,
+          height: entry.value,
+        );
+        img.compositeImage(canvas, resizedBg);
+      } else {
+        img.fill(canvas, color: bgRgb);
+      }
 
       final iconSize = (entry.value * 0.75).round();
       final resizedLogo = img.copyResize(
@@ -67,10 +92,13 @@ class ImageService {
       File(
         '${dir.path}/ic_launcher.png',
       ).writeAsBytesSync(img.encodePng(canvas));
+      File(
+        '${dir.path}/ic_launcher_round.png',
+      ).writeAsBytesSync(img.encodePng(canvas));
     }
 
-    // 2. Android Adaptive Icons (Foreground in safe zone, Background color in XML)
-    final foregroundDensities = {
+    // 2. Android Adaptive Icons (API 26+) & Android 13+ Themed Icons (API 33+)
+    final adaptiveDensities = {
       'mipmap-mdpi': 108,
       'mipmap-hdpi': 162,
       'mipmap-xhdpi': 216,
@@ -78,61 +106,114 @@ class ImageService {
       'mipmap-xxxhdpi': 432,
     };
 
-    for (final entry in foregroundDensities.entries) {
-      final canvas = img.Image(
-        width: entry.value,
-        height: entry.value,
+    for (final entry in adaptiveDensities.entries) {
+      final canvasSize = entry.value;
+      final safeSize = (canvasSize * 0.60).round();
+      final dir = Directory('android/app/src/main/res/${entry.key}');
+      if (!dir.existsSync()) dir.createSync(recursive: true);
+
+      // Foreground layer
+      final fgCanvas = img.Image(
+        width: canvasSize,
+        height: canvasSize,
         numChannels: 4,
       );
-      final safeSize = (entry.value * 0.60).round();
       final scaledLogo = img.copyResize(
         baseImage,
         width: safeSize,
         height: safeSize,
         interpolation: img.Interpolation.average,
       );
-
       img.compositeImage(
-        canvas,
+        fgCanvas,
         scaledLogo,
-        dstX: ((entry.value - safeSize) / 2).round(),
-        dstY: ((entry.value - safeSize) / 2).round(),
+        dstX: ((canvasSize - safeSize) / 2).round(),
+        dstY: ((canvasSize - safeSize) / 2).round(),
       );
-
-      final dir = Directory('android/app/src/main/res/${entry.key}');
       File(
         '${dir.path}/ic_launcher_foreground.png',
-      ).writeAsBytesSync(img.encodePng(canvas));
-    }
+      ).writeAsBytesSync(img.encodePng(fgCanvas));
 
-    // Write background color in colors.xml
-    final valuesDir = Directory('android/app/src/main/res/values');
-    if (!valuesDir.existsSync()) valuesDir.createSync(recursive: true);
+      // Background image layer (if provided)
+      if (bgImage != null) {
+        final resizedBg = img.copyResize(
+          bgImage,
+          width: canvasSize,
+          height: canvasSize,
+        );
+        File(
+          '${dir.path}/ic_launcher_background.png',
+        ).writeAsBytesSync(img.encodePng(resizedBg));
+      }
 
-    final colorsFile = File('${valuesDir.path}/colors.xml');
-    var colorsContent = colorsFile.existsSync()
-        ? colorsFile.readAsStringSync()
-        : '<resources></resources>';
-    if (!colorsContent.contains('ic_launcher_background')) {
-      colorsContent = colorsContent.replaceFirst(
-        '</resources>',
-        '    <color name="ic_launcher_background">$bgColorHex</color>\n</resources>',
+      // Android 13+ Monochrome Themed Icon layer
+      final monoCanvas = img.Image(
+        width: canvasSize,
+        height: canvasSize,
+        numChannels: 4,
       );
-      colorsFile.writeAsStringSync(colorsContent);
+      final monoSource = customMonochrome != null
+          ? img.copyResize(
+              customMonochrome,
+              width: safeSize,
+              height: safeSize,
+              interpolation: img.Interpolation.average,
+            )
+          : _createMonochromeSilhouette(scaledLogo);
+
+      img.compositeImage(
+        monoCanvas,
+        monoSource,
+        dstX: ((canvasSize - safeSize) / 2).round(),
+        dstY: ((canvasSize - safeSize) / 2).round(),
+      );
+      File(
+        '${dir.path}/ic_launcher_monochrome.png',
+      ).writeAsBytesSync(img.encodePng(monoCanvas));
     }
 
+    // Write background color in colors.xml if image background is not used
+    if (bgImage == null) {
+      final valuesDir = Directory('android/app/src/main/res/values');
+      if (!valuesDir.existsSync()) valuesDir.createSync(recursive: true);
+
+      final colorsFile = File('${valuesDir.path}/colors.xml');
+      var colorsContent = colorsFile.existsSync()
+          ? colorsFile.readAsStringSync()
+          : '<resources></resources>';
+      if (!colorsContent.contains('ic_launcher_background')) {
+        colorsContent = colorsContent.replaceFirst(
+          '</resources>',
+          '    <color name="ic_launcher_background">$bgColorHex</color>\n</resources>',
+        );
+        colorsFile.writeAsStringSync(colorsContent);
+      }
+    }
+
+    // Write Adaptive Icon XML binding (ic_launcher.xml & ic_launcher_round.xml)
     final anyDpiDir = Directory('android/app/src/main/res/mipmap-anydpi-v26');
     if (!anyDpiDir.existsSync()) anyDpiDir.createSync(recursive: true);
 
-    File('${anyDpiDir.path}/ic_launcher.xml').writeAsStringSync(
-      '''<?xml version="1.0" encoding="utf-8"?>
-<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_launcher_background"/>
-    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-</adaptive-icon>''',
-    );
+    final bgDrawableRef = bgImage != null
+        ? '@mipmap/ic_launcher_background'
+        : '@color/ic_launcher_background';
 
-    // 3. Complete 20-Asset iOS Catalog (Fixes flutter_launcher_icons bug #661)
+    final adaptiveXmlContent =
+        '''<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="$bgDrawableRef"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+    <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
+</adaptive-icon>''';
+
+    File(
+      '${anyDpiDir.path}/ic_launcher.xml',
+    ).writeAsStringSync(adaptiveXmlContent);
+    File(
+      '${anyDpiDir.path}/ic_launcher_round.xml',
+    ).writeAsStringSync(adaptiveXmlContent);
+
+    // 3. Complete iOS Asset Catalog (20 sizes + Contents.json)
     final iosDir = Directory('ios/Runner/Assets.xcassets/AppIcon.appiconset');
     if (!iosDir.existsSync()) iosDir.createSync(recursive: true);
 
@@ -161,7 +242,16 @@ class ImageService {
 
     for (final entry in iosSizes.entries) {
       final canvas = img.Image(width: entry.value, height: entry.value);
-      img.fill(canvas, color: bgRgb);
+      if (bgImage != null) {
+        final resizedBg = img.copyResize(
+          bgImage,
+          width: entry.value,
+          height: entry.value,
+        );
+        img.compositeImage(canvas, resizedBg);
+      } else {
+        img.fill(canvas, color: bgRgb);
+      }
 
       final resized = img.copyResize(
         baseImage,
@@ -205,6 +295,26 @@ class ImageService {
 }''');
   }
 
+  /// Converts a logo into a monochrome white-on-transparent silhouette for Android 13+ theming.
+  static img.Image _createMonochromeSilhouette(img.Image source) {
+    final mono = img.Image(
+      width: source.width,
+      height: source.height,
+      numChannels: 4,
+    );
+    for (int y = 0; y < source.height; y++) {
+      for (int x = 0; x < source.width; x++) {
+        final p = source.getPixel(x, y);
+        if (p.a > 15) {
+          mono.setPixelRgba(x, y, 255, 255, 255, p.a);
+        } else {
+          mono.setPixelRgba(x, y, 0, 0, 0, 0);
+        }
+      }
+    }
+    return mono;
+  }
+
   /// High-resolution, anti-aliased white silhouettes with Material safe-padding.
   static void generateNotificationIcons(String iconPath) {
     var image = loadAndValidateIcon(iconPath);
@@ -234,7 +344,6 @@ class ImageService {
 
     for (final entry in densities.entries) {
       final canvasSize = entry.value;
-      // Android standard: inner 80% safe-padding prevents edge stretching
       final innerSize = (canvasSize * 0.80).round();
 
       final scaled = img.copyResize(

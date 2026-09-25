@@ -1,14 +1,15 @@
 import 'dart:io';
-
 import 'package:yaml/yaml.dart';
 
-/// Configuration parser supporting both `rebrand_kit.yaml` and `pubspec.yaml`.
+/// Configuration options for Flutter Rebrand Kit.
 class RebrandConfig {
   final String? appName;
   final String? packageId;
   final String? version;
   final String? launcherIcon;
   final String launcherIconBgColor;
+  final String? launcherIconBgImage;
+  final String? launcherIconMonochrome;
   final String? notificationIcon;
   final String? splashImage;
   final String splashColor;
@@ -22,6 +23,8 @@ class RebrandConfig {
     this.version,
     this.launcherIcon,
     this.launcherIconBgColor = '#FFFFFF',
+    this.launcherIconBgImage,
+    this.launcherIconMonochrome,
     this.notificationIcon,
     this.splashImage,
     this.splashColor = '#FFFFFF',
@@ -30,6 +33,7 @@ class RebrandConfig {
     this.playStoreTagline,
   });
 
+  /// Loads configuration from `rebrand_kit.yaml` or `pubspec.yaml`.
   factory RebrandConfig.load() {
     File configFile = File('rebrand_kit.yaml');
     dynamic yamlMap;
@@ -62,6 +66,8 @@ class RebrandConfig {
       launcherIcon: yamlMap['launcher_icon']?.toString(),
       launcherIconBgColor:
           yamlMap['launcher_icon_bg_color']?.toString() ?? '#FFFFFF',
+      launcherIconBgImage: yamlMap['launcher_icon_bg_image']?.toString(),
+      launcherIconMonochrome: yamlMap['launcher_icon_monochrome']?.toString(),
       notificationIcon: yamlMap['notification_icon']?.toString(),
       splashImage: yamlMap['splash_image']?.toString(),
       splashColor: yamlMap['splash_color']?.toString() ?? '#FFFFFF',

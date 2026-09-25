@@ -41,17 +41,19 @@ void main() {
       Logger.step(3, totalSteps, 'Version', 'Skipped');
     }
 
-    // 4. Launcher Icons (Legacy + API 26 Adaptive + iOS)
+    // 4. Launcher Icons (Legacy + API 26 Adaptive + API 33 Monochrome + iOS)
     if (config.launcherIcon != null) {
       ImageService.generateLauncherIcons(
-        config.launcherIcon!,
-        config.launcherIconBgColor,
+        iconPath: config.launcherIcon!,
+        bgColorHex: config.launcherIconBgColor,
+        bgImagePath: config.launcherIconBgImage,
+        monochromeIconPath: config.launcherIconMonochrome,
       );
       Logger.step(
         4,
         totalSteps,
         'Launcher Icons',
-        'Generated Android Adaptive/Mipmaps & iOS universal icon',
+        'Generated Android Adaptive/Themed & iOS universal icons',
       );
     } else {
       Logger.step(4, totalSteps, 'Launcher Icons', 'Skipped');
