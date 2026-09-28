@@ -15,6 +15,12 @@
     - macOS: Updates `PRODUCT_NAME` and `PRODUCT_BUNDLE_IDENTIFIER` in `AppInfo.xcconfig`.
     - Web: Updates `<title>` and mobile meta tags in `index.html`, and `name` / `short_name` in `manifest.json`.
 
+### Edge Cases & Reliability Fixes
+- **XML Entity Escaping:** Automatically escapes special characters (e.g., `&` to `&amp;`) in `AndroidManifest.xml` to prevent AAPT build failures with titles containing ampersands.
+- **Universal UTF-8 Encoding:** Enforces `utf8` across all file read/write operations to prevent character corruption on Windows for non-ASCII titles, accents, and German umlauts.
+- **iOS Extension Target Protection:** Preserves distinct bundle identifier suffixes for iOS extensions and test targets (`RunnerTests`, widgets, share extensions) in Xcode rather than causing code-signing collisions.
+- **Windows Runner Compatibility:** Added regex flexibility to match both `window.Create` and `window.CreateAndShow` across different Flutter Windows C++ runner templates.
+
 ---
 
 ## 1.0.1

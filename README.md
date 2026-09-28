@@ -60,6 +60,10 @@ Standard standalone packages often miss critical platform requirements or contai
   Rather than requiring manual authoring of monochrome XML assets, this engine automatically derives an anti-aliased Material You silhouette directly from your master logo if a custom asset is not provided.
 - **Store-Compliant Alpha Stripping:**  
   Google Play and the App Store reject app icons with transparent pixels. The tool automatically composites transparent source PNGs over solid backgrounds for store exports, preventing automated submission rejections.
+- **XML Entity & UTF-8 Encoding Safety:**  
+    Raw characters like `&` break Android XML compilation, and Windows system code pages often corrupt accented titles (e.g., `ä`, `ö`, `ü`). The engine enforces UTF-8 across all operations and automatically escapes XML entities (`&amp;`) for `AndroidManifest.xml`.
+- **iOS Extension & Test Target Isolation:**  
+  Standard search-and-replace scripts overwrite all bundle IDs in `project.pbxproj`, breaking code signing for App Extensions and `RunnerTests`. This tool identifies extension targets and preserves their distinct sub-identifiers.
 
 ---
 

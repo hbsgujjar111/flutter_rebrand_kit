@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -11,12 +12,12 @@ class MetadataService {
     final file = File('pubspec.yaml');
     if (!file.existsSync()) return;
 
-    var content = file.readAsStringSync();
+    var content = file.readAsStringSync(encoding: utf8);
     content = content.replaceFirst(
       RegExp(r'^version:\s*.*$', multiLine: true),
       'version: $version',
     );
-    file.writeAsStringSync(content);
+    file.writeAsStringSync(content, encoding: utf8);
   }
 
   /// Updates app name across Android, iOS, macOS, Web, Windows, and Linux.
@@ -26,18 +27,19 @@ class MetadataService {
       p.join('android', 'app', 'src', 'main', 'AndroidManifest.xml'),
     );
     if (manifest.existsSync()) {
-      var content = manifest.readAsStringSync();
+      var content = manifest.readAsStringSync(encoding: utf8);
+      final escapedName = name.replaceAll('&', '&amp;'); // <-- Safeguard
       content = content.replaceAll(
         RegExp(r'android:label="[^"]*"'),
-        'android:label="$name"',
+        'android:label="$escapedName"',
       );
-      manifest.writeAsStringSync(content);
+      manifest.writeAsStringSync(content, encoding: utf8);
     }
 
     // 2. iOS (Info.plist)
     final plist = File(p.join('ios', 'Runner', 'Info.plist'));
     if (plist.existsSync()) {
-      var content = plist.readAsStringSync();
+      var content = plist.readAsStringSync(encoding: utf8);
       if (content.contains('<key>CFBundleDisplayName</key>')) {
         content = content.replaceAll(
           RegExp(r'<key>CFBundleDisplayName</key>\s*<string>[^<]*</string>'),
@@ -56,7 +58,7 @@ class MetadataService {
           '<key>CFBundleName</key>\n\t<string>$name</string>',
         );
       }
-      plist.writeAsStringSync(content);
+      plist.writeAsStringSync(content, encoding: utf8);
     }
 
     // 3. macOS (AppInfo.xcconfig)
@@ -64,18 +66,18 @@ class MetadataService {
       p.join('macos', 'Runner', 'Configs', 'AppInfo.xcconfig'),
     );
     if (macAppInfo.existsSync()) {
-      var content = macAppInfo.readAsStringSync();
+      var content = macAppInfo.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
         RegExp(r'^PRODUCT_NAME\s*=\s*.*$', multiLine: true),
         'PRODUCT_NAME = $name',
       );
-      macAppInfo.writeAsStringSync(content);
+      macAppInfo.writeAsStringSync(content, encoding: utf8);
     }
 
     // 4. Web (index.html & manifest.json)
     final webIndex = File(p.join('web', 'index.html'));
     if (webIndex.existsSync()) {
-      var content = webIndex.readAsStringSync();
+      var content = webIndex.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
         RegExp(r'<title>[^<]*</title>'),
         '<title>$name</title>',
@@ -84,12 +86,12 @@ class MetadataService {
         RegExp(r'<meta name="apple-mobile-web-app-title" content="[^"]*">'),
         '<meta name="apple-mobile-web-app-title" content="$name">',
       );
-      webIndex.writeAsStringSync(content);
+      webIndex.writeAsStringSync(content, encoding: utf8);
     }
 
     final webManifest = File(p.join('web', 'manifest.json'));
     if (webManifest.existsSync()) {
-      var content = webManifest.readAsStringSync();
+      var content = webManifest.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
         RegExp(r'"name":\s*"[^"]*"'),
         '"name": "$name"',
@@ -98,23 +100,23 @@ class MetadataService {
         RegExp(r'"short_name":\s*"[^"]*"'),
         '"short_name": "$name"',
       );
-      webManifest.writeAsStringSync(content);
+      webManifest.writeAsStringSync(content, encoding: utf8);
     }
 
     // 5. Windows (main.cpp & Runner.rc)
     final winMain = File(p.join('windows', 'runner', 'main.cpp'));
     if (winMain.existsSync()) {
-      var content = winMain.readAsStringSync();
+      var content = winMain.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
-        RegExp(r'window\.Create\(L"[^"]*"'),
+        RegExp(r'window\.Create(AndShow)?\(L"[^"]*"'),
         'window.Create(L"$name"',
       );
-      winMain.writeAsStringSync(content);
+      winMain.writeAsStringSync(content, encoding: utf8);
     }
 
     final winRc = File(p.join('windows', 'runner', 'Runner.rc'));
     if (winRc.existsSync()) {
-      var content = winRc.readAsStringSync();
+      var content = winRc.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
         RegExp(r'VALUE "FileDescription", "[^"]*"'),
         'VALUE "FileDescription", "$name"',
@@ -123,7 +125,7 @@ class MetadataService {
         RegExp(r'VALUE "ProductName", "[^"]*"'),
         'VALUE "ProductName", "$name"',
       );
-      winRc.writeAsStringSync(content);
+      winRc.writeAsStringSync(content, encoding: utf8);
     }
 
     // 6. Linux (linux/runner/my_application.cc)
@@ -135,7 +137,7 @@ class MetadataService {
         : (fallbackLinuxApp.existsSync() ? fallbackLinuxApp : null);
 
     if (targetLinuxFile != null) {
-      var content = targetLinuxFile.readAsStringSync();
+      var content = targetLinuxFile.readAsStringSync(encoding: utf8);
       // Updates standard window title
       content = content.replaceAll(
         RegExp(r'gtk_window_set_title\(window,\s*"[^"]*"\);'),
@@ -146,7 +148,7 @@ class MetadataService {
         RegExp(r'gtk_header_bar_set_title\(header_bar,\s*"[^"]*"\);'),
         'gtk_header_bar_set_title(header_bar, "$name");',
       );
-      targetLinuxFile.writeAsStringSync(content);
+      targetLinuxFile.writeAsStringSync(content, encoding: utf8);
     }
   }
 
@@ -155,7 +157,7 @@ class MetadataService {
     // 1. Android build.gradle (Groovy & Kotlin DSL)
     final groovyGradle = File(p.join('android', 'app', 'build.gradle'));
     if (groovyGradle.existsSync()) {
-      var content = groovyGradle.readAsStringSync();
+      var content = groovyGradle.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
         RegExp(r'applicationId\s+["\x27][^"\x27]+["\x27]'),
         'applicationId "$newId"',
@@ -164,12 +166,12 @@ class MetadataService {
         RegExp(r'namespace\s+["\x27][^"\x27]+["\x27]'),
         'namespace "$newId"',
       );
-      groovyGradle.writeAsStringSync(content);
+      groovyGradle.writeAsStringSync(content, encoding: utf8);
     }
 
     final ktsGradle = File(p.join('android', 'app', 'build.gradle.kts'));
     if (ktsGradle.existsSync()) {
-      var content = ktsGradle.readAsStringSync();
+      var content = ktsGradle.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
         RegExp(r'applicationId\s*=\s*["\x27][^"\x27]+["\x27]'),
         'applicationId = "$newId"',
@@ -178,7 +180,7 @@ class MetadataService {
         RegExp(r'namespace\s*=\s*["\x27][^"\x27]+["\x27]'),
         'namespace = "$newId"',
       );
-      ktsGradle.writeAsStringSync(content);
+      ktsGradle.writeAsStringSync(content, encoding: utf8);
     }
 
     // 2. Android Full-Tree File & Folder Migration
@@ -189,12 +191,21 @@ class MetadataService {
       p.join('ios', 'Runner.xcodeproj', 'project.pbxproj'),
     );
     if (iosPbxproj.existsSync()) {
-      var content = iosPbxproj.readAsStringSync();
-      content = content.replaceAll(
-        RegExp(r'PRODUCT_BUNDLE_IDENTIFIER\s*=\s*[^;]+;'),
-        'PRODUCT_BUNDLE_IDENTIFIER = $newId;',
+      var content = iosPbxproj.readAsStringSync(encoding: utf8);
+      content = content.replaceAllMapped(
+        RegExp(r'PRODUCT_BUNDLE_IDENTIFIER\s*=\s*([^;]+);'),
+        (match) {
+          final currentId = match.group(1)!.trim();
+          final lastPart = currentId.split('.').last;
+          if (lastPart == 'RunnerTests' ||
+              lastPart.toLowerCase().contains('extension') ||
+              lastPart.toLowerCase().contains('widget')) {
+            return 'PRODUCT_BUNDLE_IDENTIFIER = $newId.$lastPart;'; // <-- Keeps extension distinct
+          }
+          return 'PRODUCT_BUNDLE_IDENTIFIER = $newId;';
+        },
       );
-      iosPbxproj.writeAsStringSync(content);
+      iosPbxproj.writeAsStringSync(content, encoding: utf8);
     }
 
     // 4. macOS (AppInfo.xcconfig & project.pbxproj)
@@ -202,47 +213,47 @@ class MetadataService {
       p.join('macos', 'Runner', 'Configs', 'AppInfo.xcconfig'),
     );
     if (macAppInfo.existsSync()) {
-      var content = macAppInfo.readAsStringSync();
+      var content = macAppInfo.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
         RegExp(r'^PRODUCT_BUNDLE_IDENTIFIER\s*=\s*.*$', multiLine: true),
         'PRODUCT_BUNDLE_IDENTIFIER = $newId',
       );
-      macAppInfo.writeAsStringSync(content);
+      macAppInfo.writeAsStringSync(content, encoding: utf8);
     }
 
     final macPbxproj = File(
       p.join('macos', 'Runner.xcodeproj', 'project.pbxproj'),
     );
     if (macPbxproj.existsSync()) {
-      var content = macPbxproj.readAsStringSync();
+      var content = macPbxproj.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
         RegExp(r'PRODUCT_BUNDLE_IDENTIFIER\s*=\s*[^;]+;'),
         'PRODUCT_BUNDLE_IDENTIFIER = $newId;',
       );
-      macPbxproj.writeAsStringSync(content);
+      macPbxproj.writeAsStringSync(content, encoding: utf8);
     }
 
     // 5. Linux (CMakeLists.txt)
     final linuxCMake = File(p.join('linux', 'CMakeLists.txt'));
     if (linuxCMake.existsSync()) {
-      var content = linuxCMake.readAsStringSync();
+      var content = linuxCMake.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
         RegExp(r'set\(APPLICATION_ID\s+"[^"]*"\)'),
         'set(APPLICATION_ID "$newId")',
       );
-      linuxCMake.writeAsStringSync(content);
+      linuxCMake.writeAsStringSync(content, encoding: utf8);
     }
 
     // 6. Windows (CMakeLists.txt binary target name)
     final winCMake = File(p.join('windows', 'CMakeLists.txt'));
     if (winCMake.existsSync()) {
       final sanitizedBinary = newId.split('.').last;
-      var content = winCMake.readAsStringSync();
+      var content = winCMake.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
         RegExp(r'set\(BINARY_NAME\s+"[^"]*"\)'),
         'set(BINARY_NAME "$sanitizedBinary")',
       );
-      winCMake.writeAsStringSync(content);
+      winCMake.writeAsStringSync(content, encoding: utf8);
     }
   }
 
@@ -275,7 +286,7 @@ class MetadataService {
           sourceFiles.add(entity);
 
           if (detectedOldPackage == null) {
-            final content = entity.readAsStringSync();
+            final content = entity.readAsStringSync(encoding: utf8);
             final match = RegExp(
               r'^\s*package\s+([a-zA-Z0-9_.]+)',
               multiLine: true,
@@ -294,7 +305,7 @@ class MetadataService {
       final newSubPath = newId.replaceAll('.', Platform.pathSeparator);
 
       for (final file in sourceFiles) {
-        var content = file.readAsStringSync();
+        var content = file.readAsStringSync(encoding: utf8);
 
         content = content.replaceAllMapped(
           RegExp(
@@ -338,7 +349,7 @@ class MetadataService {
 
         final targetFile = File(targetFilePath);
         targetFile.parent.createSync(recursive: true);
-        targetFile.writeAsStringSync(content);
+        targetFile.writeAsStringSync(content, encoding: utf8);
 
         if (p.normalize(p.absolute(file.path)) !=
             p.normalize(p.absolute(targetFile.path))) {
@@ -356,13 +367,13 @@ class MetadataService {
 
     final manifest = File(p.join(mainDir.path, 'AndroidManifest.xml'));
     if (manifest.existsSync() && detectedOldPackage != null) {
-      var content = manifest.readAsStringSync();
+      var content = manifest.readAsStringSync(encoding: utf8);
       content = content.replaceAll(
         'package="$detectedOldPackage"',
         'package="$newId"',
       );
       content = content.replaceAll('"$detectedOldPackage.', '"$newId.');
-      manifest.writeAsStringSync(content);
+      manifest.writeAsStringSync(content, encoding: utf8);
     }
   }
 
