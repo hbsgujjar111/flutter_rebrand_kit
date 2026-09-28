@@ -6,14 +6,20 @@
 - **All-Platform App Renaming:** Full support for updating App Name across **all 6 platforms** (Android, iOS, macOS, Web, Windows, and Linux).
 - **All-Platform Package ID / Bundle ID Migration:** Updates application IDs across Android (Gradle Groovy & KTS), iOS (`project.pbxproj`), macOS (`AppInfo.xcconfig`), Linux (`CMakeLists.txt`), and Windows (`CMakeLists.txt`).
 - **Full-Tree Android Code Refactoring:** Recursively relocates all Kotlin and Java files, updates `package` statements across sub-packages, rewrites internal project imports, safely ignores engine files (`GeneratedPluginRegistrant.java`), and prunes empty directories.
+- **High-Fidelity Notification Engine:**
+  - Renders notification icons at 100% full-canvas scale (`24` to `96px`), preserving fine strokes and delicate line art.
+  - Added optional `notification_icon_name` property (defaults to `ic_notification`) to support custom drawable filenames.
+  - Automatically deletes stale default `ic_notification.png` assets when a custom name is configured to prevent APK bloat.
+  - Universal image format support: automatically normalizes 8-bit paletted PNGs, 24-bit RGB, and 32-bit RGBA into a 4-channel buffer.
+  - Preserves subpixel antialiasing curves without destructive alpha thresholding.
 - **Android 13+ Themed / Monochromatic Icons:** Added Material You dynamic theming support by generating `ic_launcher_monochrome.png` and injecting `<monochrome>` tags into `res/mipmap-anydpi-v26/ic_launcher.xml`.
 - **Adaptive Icon Image Backgrounds:** Added `launcher_icon_bg_image` property to allow custom image textures for Android adaptive backgrounds instead of solid hex colors.
 - **Round Icon Generation:** Generates `ic_launcher_round.xml` and legacy round mipmap variants for OEM launchers that enforce circular icons.
 - **Native Desktop & Web Metadata:**
-    - Windows: Updates `Runner.rc` (`FileDescription`, `ProductName`, `InternalName`) and window title in `main.cpp`.
-    - Linux: Updates both standard window title and GTK HeaderBar title in `linux/runner/my_application.cc`.
-    - macOS: Updates `PRODUCT_NAME` and `PRODUCT_BUNDLE_IDENTIFIER` in `AppInfo.xcconfig`.
-    - Web: Updates `<title>` and mobile meta tags in `index.html`, and `name` / `short_name` in `manifest.json`.
+  - Windows: Updates `Runner.rc` (`FileDescription`, `ProductName`, `InternalName`) and window title in `main.cpp`.
+  - Linux: Updates both standard window title and GTK HeaderBar title in `linux/runner/my_application.cc`.
+  - macOS: Updates `PRODUCT_NAME` and `PRODUCT_BUNDLE_IDENTIFIER` in `AppInfo.xcconfig`.
+  - Web: Updates `<title>` and mobile meta tags in `index.html`, and `name` / `short_name` in `manifest.json`.
 
 ### Edge Cases & Reliability Fixes
 - **XML Entity Escaping:** Automatically escapes special characters (e.g., `&` to `&amp;`) in `AndroidManifest.xml` to prevent AAPT build failures with titles containing ampersands.

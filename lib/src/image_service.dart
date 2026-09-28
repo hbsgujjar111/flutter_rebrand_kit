@@ -315,23 +315,19 @@ class ImageService {
     return mono;
   }
 
-  /// High-resolution, anti-aliased white silhouettes with Material safe-padding.
-  static void generateNotificationIcons(String iconPath) {
+  /// High-resolution, anti-aliased white silhouettes matching Android notification specs.
+  static void generateNotificationIcons(
+    String iconPath, {
+    String iconName = 'ic_notification',
+  }) {
     var image = loadAndValidateIcon(iconPath);
+    final cleanIconName = iconName.replaceAll(
+      '.png',
+      '',
+    ); // Strip extension if provided
 
-    if (image.numChannels < 4) {
+    if (image.numChannels < 4 || image.hasPalette) {
       image = image.convert(numChannels: 4);
-    }
-
-    bool hasTransparency = false;
-    for (int y = 0; y < image.height; y += 10) {
-      for (int x = 0; x < image.width; x += 10) {
-        if (image.getPixel(x, y).a < 200) {
-          hasTransparency = true;
-          break;
-        }
-      }
-      if (hasTransparency) break;
     }
 
     final densities = {
@@ -343,56 +339,42 @@ class ImageService {
     };
 
     for (final entry in densities.entries) {
-      final canvasSize = entry.value;
-      final innerSize = (canvasSize * 0.80).round();
+      final targetSize = entry.value;
 
       final scaled = img.copyResize(
         image,
-        width: innerSize,
-        height: innerSize,
+        width: targetSize,
+        height: targetSize,
         interpolation: img.Interpolation.average,
-      );
-
-      final iconCanvas = img.Image(
-        width: canvasSize,
-        height: canvasSize,
-        numChannels: 4,
       );
 
       for (int y = 0; y < scaled.height; y++) {
         for (int x = 0; x < scaled.width; x++) {
           final p = scaled.getPixel(x, y);
-
-          if (hasTransparency) {
-            if (p.a > 15) {
-              scaled.setPixelRgba(x, y, 255, 255, 255, p.a);
-            } else {
-              scaled.setPixelRgba(x, y, 0, 0, 0, 0);
-            }
-          } else {
-            final luminance = (0.299 * p.r + 0.587 * p.g + 0.114 * p.b).round();
-            final alpha = (255 - luminance).clamp(0, 255);
-            if (alpha > 30) {
-              scaled.setPixelRgba(x, y, 255, 255, 255, alpha);
-            } else {
-              scaled.setPixelRgba(x, y, 0, 0, 0, 0);
-            }
+          if (p.a > 0) {
+            scaled.setPixelRgba(x, y, 255, 255, 255, p.a);
           }
         }
       }
 
-      img.compositeImage(
-        iconCanvas,
-        scaled,
-        dstX: ((canvasSize - innerSize) / 2).round(),
-        dstY: ((canvasSize - innerSize) / 2).round(),
-      );
-
       final dir = Directory('android/app/src/main/res/${entry.key}');
-      if (!dir.existsSync()) dir.createSync(recursive: true);
+      if (!dir.existsSync()) {
+        dir.createSync(recursive: true);
+      }
+
+      // If a custom name is used, remove the default 'ic_notification.png' to prevent stale duplicates
+      if (cleanIconName != 'ic_notification') {
+        final oldDefaultFile = File('${dir.path}/ic_notification.png');
+        if (oldDefaultFile.existsSync()) {
+          try {
+            oldDefaultFile.deleteSync();
+          } catch (_) {}
+        }
+      }
+
       File(
-        '${dir.path}/ic_notification.png',
-      ).writeAsBytesSync(img.encodePng(iconCanvas));
+        '${dir.path}/$cleanIconName.png',
+      ).writeAsBytesSync(img.encodePng(scaled));
     }
   }
 

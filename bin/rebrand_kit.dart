@@ -59,14 +59,16 @@ void main() {
       Logger.step(4, totalSteps, 'Launcher Icons', 'Skipped');
     }
 
-    // 5. Notification Icons
     if (config.notificationIcon != null) {
-      ImageService.generateNotificationIcons(config.notificationIcon!);
+      ImageService.generateNotificationIcons(
+        config.notificationIcon!,
+        iconName: config.notificationIconName,
+      );
       Logger.step(
         5,
         totalSteps,
         'Notification Icons',
-        'Generated Android monochrome silhouettes',
+        'Generated "${config.notificationIconName}.png" across all densities',
       );
     } else {
       Logger.step(5, totalSteps, 'Notification Icons', 'Skipped');

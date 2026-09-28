@@ -1,26 +1,30 @@
 # ==============================================================================
-# FLUTTER REBRAND KIT CONFIGURATION
-# Save this file in your Flutter root directory as "rebrand_kit.yaml"
-# All fields are completely optional!
+# FLUTTER REBRAND KIT EXAMPLE CONFIGURATION
+# Place this in your project root as "rebrand_kit.yaml"
+# All fields are optional!
 # ==============================================================================
 
-# 1. Identity & Manifests
+# 1. App Identity
 app_name: "Super App"
 package_id: "com.acme.superapp"
-version: "2.1.0+42"
+version: "2.0.0+42"
 
-# 2. Launcher Icons (Source should ideally be 1024x1024 PNG)
+# 2. Launcher Icons (1024x1024 Transparent PNG recommended)
 launcher_icon: "assets/branding/app_logo_1024.png"
+launcher_icon_bg_color: "#FFFFFF"
+# launcher_icon_bg_image: "assets/branding/adaptive_bg.png"
+# launcher_icon_monochrome: "assets/branding/custom_mono.png"
 
-# 3. Notification Icon (Auto-flattened to white silhouette with transparency)
-notification_icon: "assets/branding/notification_icon.png"
+# 3. Notification Icon
+notification_icon: "assets/branding/app_logo_1024.png"
+notification_icon_name: "ic_stat_notification" # Optional (defaults to "ic_notification")
 
-# 4. Native Splash Screen (Auto-centered with safe boundaries)
+# 4. Native Splash Screen
 splash_image: "assets/branding/app_logo_1024.png"
 splash_color: "#0F172A"
 
 # 5. Play Store Marketing Assets
 play_store:
-generate: true
-background_color: "#0F172A"
-tagline: "The fastest way to manage your work"
+  generate: true
+  background_color: "#0F172A"
+  tagline: "The fastest way to manage your work"

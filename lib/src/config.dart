@@ -11,6 +11,7 @@ class RebrandConfig {
   final String? launcherIconBgImage;
   final String? launcherIconMonochrome;
   final String? notificationIcon;
+  final String notificationIconName;
   final String? splashImage;
   final String splashColor;
   final bool generatePlayStoreAssets;
@@ -26,6 +27,7 @@ class RebrandConfig {
     this.launcherIconBgImage,
     this.launcherIconMonochrome,
     this.notificationIcon,
+    this.notificationIconName = 'ic_notification',
     this.splashImage,
     this.splashColor = '#FFFFFF',
     this.generatePlayStoreAssets = false,
@@ -69,6 +71,8 @@ class RebrandConfig {
       launcherIconBgImage: yamlMap['launcher_icon_bg_image']?.toString(),
       launcherIconMonochrome: yamlMap['launcher_icon_monochrome']?.toString(),
       notificationIcon: yamlMap['notification_icon']?.toString(),
+      notificationIconName:
+          yamlMap['notification_icon_name']?.toString() ?? 'ic_notification',
       splashImage: yamlMap['splash_image']?.toString(),
       splashColor: yamlMap['splash_color']?.toString() ?? '#FFFFFF',
       generatePlayStoreAssets: playStore?['generate'] == true,
