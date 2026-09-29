@@ -1,10 +1,17 @@
-import 'package:flutter_rebrand_kit/src/config.dart';
+import 'package:flutter_rebrand_kit/src/config/config.dart';
+import 'package:flutter_rebrand_kit/src/config/init_service.dart';
 import 'package:flutter_rebrand_kit/src/image_service.dart';
-import 'package:flutter_rebrand_kit/src/logger.dart';
 import 'package:flutter_rebrand_kit/src/metadata_service.dart';
-import 'package:flutter_rebrand_kit/src/splash_service.dart';
+import 'package:flutter_rebrand_kit/src/splash/splash_service.dart';
+import 'package:flutter_rebrand_kit/src/utils/logger.dart';
 
-void main() {
+void main(List<String> args) {
+  // Support CLI init command: dart run flutter_rebrand_kit:rebrand_kit init
+  if (args.isNotEmpty && args[0].toLowerCase() == 'init') {
+    InitService.createTemplate();
+    return;
+  }
+
   Logger.banner();
   final stopwatch = Stopwatch()..start();
 
@@ -20,28 +27,28 @@ void main() {
       Logger.step(1, totalSteps, 'App Name', 'Skipped');
     }
 
-    // 2. Package ID & Directory Restructuring
+    // 2. Package ID
     if (config.packageId != null) {
       MetadataService.updatePackageId(config.packageId!);
       Logger.step(
         2,
         totalSteps,
         'Package ID',
-        'Updated & refactored MainActivity tree to "${config.packageId}"',
+        'Updated & refactored source tree to "${config.packageId}"',
       );
     } else {
       Logger.step(2, totalSteps, 'Package ID', 'Skipped');
     }
 
-    // 3. Version Bump
+    // 3. Version
     if (config.version != null) {
       MetadataService.updateVersion(config.version!);
-      Logger.step(3, totalSteps, 'Version', 'Bumped to "${config.version}"');
+      Logger.step(3, totalSteps, 'Version', 'Updated to "${config.version}"');
     } else {
       Logger.step(3, totalSteps, 'Version', 'Skipped');
     }
 
-    // 4. Launcher Icons (Legacy + API 26 Adaptive + API 33 Monochrome + iOS)
+    // 4. Launcher Icons
     if (config.launcherIcon != null) {
       ImageService.generateLauncherIcons(
         iconPath: config.launcherIcon!,
@@ -53,12 +60,13 @@ void main() {
         4,
         totalSteps,
         'Launcher Icons',
-        'Generated Android Adaptive/Themed & iOS universal icons',
+        'Generated icons across all active platforms',
       );
     } else {
       Logger.step(4, totalSteps, 'Launcher Icons', 'Skipped');
     }
 
+    // 5. Notification Icons
     if (config.notificationIcon != null) {
       ImageService.generateNotificationIcons(
         config.notificationIcon!,
@@ -68,13 +76,13 @@ void main() {
         5,
         totalSteps,
         'Notification Icons',
-        'Generated "${config.notificationIconName}.png" across all densities',
+        'Generated "${config.notificationIconName}.png"',
       );
     } else {
       Logger.step(5, totalSteps, 'Notification Icons', 'Skipped');
     }
 
-    // 6. Native Splash (Android 12+ / Pre-12 / iOS Storyboard Asset)
+    // 6. Native Splash
     if (config.splashImage != null) {
       SplashService.generateNativeSplash(
         config.splashImage!,
@@ -84,13 +92,13 @@ void main() {
         6,
         totalSteps,
         'Native Splash',
-        'Wired Android 12 API, launch_background, and iOS LaunchImage',
+        'Generated with safe padding (${config.splashColor})',
       );
     } else {
       Logger.step(6, totalSteps, 'Native Splash', 'Skipped');
     }
 
-    // 7. Store Marketing Assets
+    // 7. Play Store Assets
     if (config.generatePlayStoreAssets && config.launcherIcon != null) {
       ImageService.generatePlayStoreAssets(
         iconPath: config.launcherIcon!,
@@ -102,7 +110,7 @@ void main() {
         7,
         totalSteps,
         'Play Store Assets',
-        'Saved 512x512 icon & 1024x500 banner to branding_assets/',
+        'Saved 512x512 icon & 1024x500 banner',
       );
     } else {
       Logger.step(7, totalSteps, 'Play Store Assets', 'Skipped');

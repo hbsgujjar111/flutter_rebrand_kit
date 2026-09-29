@@ -11,20 +11,18 @@ class Logger {
   static const _red = '\x1B[31m';
   static const _bold = '\x1B[1m';
 
-  /// Prints the header banner when the CLI starts.
   static void banner() {
     stdout.writeln(
       '\n$_cyan$_bold=========================================$_reset',
     );
     stdout.writeln(
-      '$_cyan$_bold    FLUTTER REBRAND KIT CLI (v1.1.0)    $_reset',
+      '$_cyan$_bold    FLUTTER REBRAND KIT CLI (v1.2.0)    $_reset',
     );
     stdout.writeln(
       '$_cyan$_bold=========================================$_reset\n',
     );
   }
 
-  /// Logs a progress step.
   static void step(int step, int total, String title, String detail) {
     final stepStr = '[$step/$total]'.padRight(8);
     stdout.writeln(
@@ -32,17 +30,14 @@ class Logger {
     );
   }
 
-  /// Logs a warning message.
   static void warn(String message) {
     stdout.writeln('$_yellow$_bold⚠ WARNING:$_reset $_yellow$message$_reset');
   }
 
-  /// Logs an error message.
   static void error(String message) {
-    stdout.writeln('$_red$_bold✖ ERROR:$_reset $_red$message$_reset');
+    stderr.writeln('$_red$_bold✖ ERROR:$_reset $_red$message$_reset');
   }
 
-  /// Logs a success completion message.
   static void success(String message) {
     stdout.writeln('\n$_green$_bold✨ $message$_reset\n');
   }

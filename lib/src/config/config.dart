@@ -35,7 +35,6 @@ class RebrandConfig {
     this.playStoreTagline,
   });
 
-  /// Loads configuration from `rebrand_kit.yaml` or `pubspec.yaml`.
   factory RebrandConfig.load() {
     File configFile = File('rebrand_kit.yaml');
     dynamic yamlMap;

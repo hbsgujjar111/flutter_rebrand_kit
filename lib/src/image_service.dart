@@ -2,462 +2,118 @@ import 'dart:io';
 
 import 'package:image/image.dart' as img;
 
-import 'logger.dart';
+import 'icons/android_icon_generator.dart';
+import 'icons/ios_icon_generator.dart';
+import 'icons/linux_icon_generator.dart';
+import 'icons/macos_icon_generator.dart';
+import 'icons/notification_icon_generator.dart';
+import 'icons/web_icon_generator.dart';
+import 'icons/windows_icon_generator.dart';
+import 'marketing/play_store_generator.dart';
+import 'utils/image_utils.dart';
 
-/// Service responsible for resizing and generating app icons, splash screens, and store banners.
+/// Orchestrator service for generating icons, notification silhouettes, and marketing graphics.
 class ImageService {
   ImageService._();
 
   /// Decodes and validates the master icon image at [path].
   static img.Image loadAndValidateIcon(String path) {
-    final file = File(path);
-    if (!file.existsSync()) {
-      throw Exception('File not found at: $path');
-    }
-
-    final image = img.decodeImage(file.readAsBytesSync());
-    if (image == null) {
-      throw Exception('Unable to decode image at: $path');
-    }
-
-    if (image.width != 1024 || image.height != 1024) {
-      Logger.warn(
-        'Image ($path) is ${image.width}x${image.height}. '
-        'For sharp downscaling and store compliance, use a 1024x1024 source PNG.',
-      );
-    }
-    return image;
+    return ImageUtils.loadAndValidateIcon(path);
   }
 
-  /// Generates Android Legacy, Adaptive (with image/color bg & Android 13 monochrome), and iOS icons.
+  /// Generates launcher icons across all platforms.
   static void generateLauncherIcons({
     required String iconPath,
     required String bgColorHex,
     String? bgImagePath,
     String? monochromeIconPath,
   }) {
-    final baseImage = loadAndValidateIcon(iconPath);
-    final bgRgb = _parseHexColor(bgColorHex);
+    final baseImage = ImageUtils.loadAndValidateIcon(iconPath);
+    final bgRgb = ImageUtils.parseHexColor(bgColorHex);
 
     img.Image? bgImage;
     if (bgImagePath != null) {
-      bgImage = loadAndValidateIcon(bgImagePath);
+      bgImage = ImageUtils.loadAndValidateIcon(bgImagePath);
     }
 
     img.Image? customMonochrome;
     if (monochromeIconPath != null) {
-      customMonochrome = loadAndValidateIcon(monochromeIconPath);
+      customMonochrome = ImageUtils.loadAndValidateIcon(monochromeIconPath);
     }
 
-    // 1. Android Legacy Mipmaps
-    final androidDensities = {
-      'mipmap-mdpi': 48,
-      'mipmap-hdpi': 72,
-      'mipmap-xhdpi': 96,
-      'mipmap-xxhdpi': 144,
-      'mipmap-xxxhdpi': 192,
-    };
-
-    for (final entry in androidDensities.entries) {
-      final canvas = img.Image(width: entry.value, height: entry.value);
-
-      if (bgImage != null) {
-        final resizedBg = img.copyResize(
-          bgImage,
-          width: entry.value,
-          height: entry.value,
-        );
-        img.compositeImage(canvas, resizedBg);
-      } else {
-        img.fill(canvas, color: bgRgb);
-      }
-
-      final iconSize = (entry.value * 0.75).round();
-      final resizedLogo = img.copyResize(
-        baseImage,
-        width: iconSize,
-        height: iconSize,
-        interpolation: img.Interpolation.average,
-      );
-
-      img.compositeImage(
-        canvas,
-        resizedLogo,
-        dstX: ((entry.value - iconSize) / 2).round(),
-        dstY: ((entry.value - iconSize) / 2).round(),
-      );
-
-      final dir = Directory('android/app/src/main/res/${entry.key}');
-      if (!dir.existsSync()) dir.createSync(recursive: true);
-      File(
-        '${dir.path}/ic_launcher.png',
-      ).writeAsBytesSync(img.encodePng(canvas));
-      File(
-        '${dir.path}/ic_launcher_round.png',
-      ).writeAsBytesSync(img.encodePng(canvas));
-    }
-
-    // 2. Android Adaptive Icons (API 26+) & Android 13+ Themed Icons (API 33+)
-    final adaptiveDensities = {
-      'mipmap-mdpi': 108,
-      'mipmap-hdpi': 162,
-      'mipmap-xhdpi': 216,
-      'mipmap-xxhdpi': 324,
-      'mipmap-xxxhdpi': 432,
-    };
-
-    for (final entry in adaptiveDensities.entries) {
-      final canvasSize = entry.value;
-      final safeSize = (canvasSize * 0.60).round();
-      final dir = Directory('android/app/src/main/res/${entry.key}');
-      if (!dir.existsSync()) dir.createSync(recursive: true);
-
-      // Foreground layer
-      final fgCanvas = img.Image(
-        width: canvasSize,
-        height: canvasSize,
-        numChannels: 4,
-      );
-      final scaledLogo = img.copyResize(
-        baseImage,
-        width: safeSize,
-        height: safeSize,
-        interpolation: img.Interpolation.average,
-      );
-      img.compositeImage(
-        fgCanvas,
-        scaledLogo,
-        dstX: ((canvasSize - safeSize) / 2).round(),
-        dstY: ((canvasSize - safeSize) / 2).round(),
-      );
-      File(
-        '${dir.path}/ic_launcher_foreground.png',
-      ).writeAsBytesSync(img.encodePng(fgCanvas));
-
-      // Background image layer (if provided)
-      if (bgImage != null) {
-        final resizedBg = img.copyResize(
-          bgImage,
-          width: canvasSize,
-          height: canvasSize,
-        );
-        File(
-          '${dir.path}/ic_launcher_background.png',
-        ).writeAsBytesSync(img.encodePng(resizedBg));
-      }
-
-      // Android 13+ Monochrome Themed Icon layer
-      final monoCanvas = img.Image(
-        width: canvasSize,
-        height: canvasSize,
-        numChannels: 4,
-      );
-      final monoSource = customMonochrome != null
-          ? img.copyResize(
-              customMonochrome,
-              width: safeSize,
-              height: safeSize,
-              interpolation: img.Interpolation.average,
-            )
-          : _createMonochromeSilhouette(scaledLogo);
-
-      img.compositeImage(
-        monoCanvas,
-        monoSource,
-        dstX: ((canvasSize - safeSize) / 2).round(),
-        dstY: ((canvasSize - safeSize) / 2).round(),
-      );
-      File(
-        '${dir.path}/ic_launcher_monochrome.png',
-      ).writeAsBytesSync(img.encodePng(monoCanvas));
-    }
-
-    // Write background color in colors.xml if image background is not used
-    if (bgImage == null) {
-      final valuesDir = Directory('android/app/src/main/res/values');
-      if (!valuesDir.existsSync()) valuesDir.createSync(recursive: true);
-
-      final colorsFile = File('${valuesDir.path}/colors.xml');
-      var colorsContent = colorsFile.existsSync()
-          ? colorsFile.readAsStringSync()
-          : '<resources></resources>';
-      if (!colorsContent.contains('ic_launcher_background')) {
-        colorsContent = colorsContent.replaceFirst(
-          '</resources>',
-          '    <color name="ic_launcher_background">$bgColorHex</color>\n</resources>',
-        );
-        colorsFile.writeAsStringSync(colorsContent);
-      }
-    }
-
-    // Write Adaptive Icon XML binding (ic_launcher.xml & ic_launcher_round.xml)
-    final anyDpiDir = Directory('android/app/src/main/res/mipmap-anydpi-v26');
-    if (!anyDpiDir.existsSync()) anyDpiDir.createSync(recursive: true);
-
-    final bgDrawableRef = bgImage != null
-        ? '@mipmap/ic_launcher_background'
-        : '@color/ic_launcher_background';
-
-    final adaptiveXmlContent =
-        '''<?xml version="1.0" encoding="utf-8"?>
-<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="$bgDrawableRef"/>
-    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-    <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
-</adaptive-icon>''';
-
-    File(
-      '${anyDpiDir.path}/ic_launcher.xml',
-    ).writeAsStringSync(adaptiveXmlContent);
-    File(
-      '${anyDpiDir.path}/ic_launcher_round.xml',
-    ).writeAsStringSync(adaptiveXmlContent);
-
-    // 3. Complete iOS Asset Catalog (20 sizes + Contents.json)
-    final iosDir = Directory('ios/Runner/Assets.xcassets/AppIcon.appiconset');
-    if (!iosDir.existsSync()) iosDir.createSync(recursive: true);
-
-    final iosSizes = {
-      'Icon-App-20x20@1x.png': 20,
-      'Icon-App-20x20@2x.png': 40,
-      'Icon-App-20x20@3x.png': 60,
-      'Icon-App-29x29@1x.png': 29,
-      'Icon-App-29x29@2x.png': 58,
-      'Icon-App-29x29@3x.png': 87,
-      'Icon-App-38x38@2x.png': 76,
-      'Icon-App-38x38@3x.png': 114,
-      'Icon-App-40x40@1x.png': 40,
-      'Icon-App-40x40@2x.png': 80,
-      'Icon-App-40x40@3x.png': 120,
-      'Icon-App-60x60@2x.png': 120,
-      'Icon-App-60x60@3x.png': 180,
-      'Icon-App-64x64@2x.png': 128,
-      'Icon-App-64x64@3x.png': 192,
-      'Icon-App-68x68@2x.png': 136,
-      'Icon-App-76x76@1x.png': 76,
-      'Icon-App-76x76@2x.png': 152,
-      'Icon-App-83.5x83.5@2x.png': 167,
-      'Icon-App-1024x1024@1x.png': 1024,
-    };
-
-    for (final entry in iosSizes.entries) {
-      final canvas = img.Image(width: entry.value, height: entry.value);
-      if (bgImage != null) {
-        final resizedBg = img.copyResize(
-          bgImage,
-          width: entry.value,
-          height: entry.value,
-        );
-        img.compositeImage(canvas, resizedBg);
-      } else {
-        img.fill(canvas, color: bgRgb);
-      }
-
-      final resized = img.copyResize(
-        baseImage,
-        width: entry.value,
-        height: entry.value,
-        interpolation: img.Interpolation.average,
-      );
-
-      img.compositeImage(canvas, resized);
-      File(
-        '${iosDir.path}/${entry.key}',
-      ).writeAsBytesSync(img.encodePng(canvas));
-    }
-
-    File('${iosDir.path}/Contents.json').writeAsStringSync('''{
-  "images": [
-    { "size": "20x20", "idiom": "iphone", "filename": "Icon-App-20x20@2x.png", "scale": "2x" },
-    { "size": "20x20", "idiom": "iphone", "filename": "Icon-App-20x20@3x.png", "scale": "3x" },
-    { "size": "29x29", "idiom": "iphone", "filename": "Icon-App-29x29@1x.png", "scale": "1x" },
-    { "size": "29x29", "idiom": "iphone", "filename": "Icon-App-29x29@2x.png", "scale": "2x" },
-    { "size": "29x29", "idiom": "iphone", "filename": "Icon-App-29x29@3x.png", "scale": "3x" },
-    { "size": "38x38", "idiom": "iphone", "filename": "Icon-App-38x38@2x.png", "scale": "2x" },
-    { "size": "38x38", "idiom": "iphone", "filename": "Icon-App-38x38@3x.png", "scale": "3x" },
-    { "size": "40x40", "idiom": "iphone", "filename": "Icon-App-40x40@2x.png", "scale": "2x" },
-    { "size": "40x40", "idiom": "iphone", "filename": "Icon-App-40x40@3x.png", "scale": "3x" },
-    { "size": "60x60", "idiom": "iphone", "filename": "Icon-App-60x60@2x.png", "scale": "2x" },
-    { "size": "60x60", "idiom": "iphone", "filename": "Icon-App-60x60@3x.png", "scale": "3x" },
-    { "size": "20x20", "idiom": "ipad", "filename": "Icon-App-20x20@1x.png", "scale": "1x" },
-    { "size": "20x20", "idiom": "ipad", "filename": "Icon-App-20x20@2x.png", "scale": "2x" },
-    { "size": "29x29", "idiom": "ipad", "filename": "Icon-App-29x29@1x.png", "scale": "1x" },
-    { "size": "29x29", "idiom": "ipad", "filename": "Icon-App-29x29@2x.png", "scale": "2x" },
-    { "size": "40x40", "idiom": "ipad", "filename": "Icon-App-40x40@1x.png", "scale": "1x" },
-    { "size": "40x40", "idiom": "ipad", "filename": "Icon-App-40x40@2x.png", "scale": "2x" },
-    { "size": "68x68", "idiom": "ipad", "filename": "Icon-App-68x68@2x.png", "scale": "2x" },
-    { "size": "76x76", "idiom": "ipad", "filename": "Icon-App-76x76@1x.png", "scale": "1x" },
-    { "size": "76x76", "idiom": "ipad", "filename": "Icon-App-76x76@2x.png", "scale": "2x" },
-    { "size": "83.5x83.5", "idiom": "ipad", "filename": "Icon-App-83.5x83.5@2x.png", "scale": "2x" },
-    { "size": "1024x1024", "idiom": "ios-marketing", "filename": "Icon-App-1024x1024@1x.png", "scale": "1x" }
-  ],
-  "info": { "version": 1, "author": "flutter_rebrand_kit" }
-}''');
-  }
-
-  /// Converts a logo into a monochrome white-on-transparent silhouette for Android 13+ theming.
-  static img.Image _createMonochromeSilhouette(img.Image source) {
-    final mono = img.Image(
-      width: source.width,
-      height: source.height,
-      numChannels: 4,
+    // 1. Android
+    AndroidIconGenerator.generate(
+      baseImage: baseImage,
+      bgRgb: bgRgb,
+      bgColorHex: bgColorHex,
+      bgImage: bgImage,
+      customMonochrome: customMonochrome,
     );
-    for (int y = 0; y < source.height; y++) {
-      for (int x = 0; x < source.width; x++) {
-        final p = source.getPixel(x, y);
-        if (p.a > 15) {
-          mono.setPixelRgba(x, y, 255, 255, 255, p.a);
-        } else {
-          mono.setPixelRgba(x, y, 0, 0, 0, 0);
-        }
-      }
+
+    // 2. iOS
+    IosIconGenerator.generate(
+      baseImage: baseImage,
+      bgImage: bgImage,
+      bgRgb: bgRgb,
+    );
+
+    // 3. macOS
+    if (Directory('macos').existsSync()) {
+      MacOsIconGenerator.generate(
+        baseImage: baseImage,
+        bgImage: bgImage,
+        bgRgb: bgRgb,
+      );
     }
-    return mono;
+
+    // 4. Web
+    if (Directory('web').existsSync()) {
+      WebIconGenerator.generate(
+        baseImage: baseImage,
+        bgImage: bgImage,
+        bgRgb: bgRgb,
+      );
+    }
+
+    // 5. Windows
+    if (Directory('windows').existsSync()) {
+      WindowsIconGenerator.generate(
+        baseImage: baseImage,
+        bgImage: bgImage,
+        bgRgb: bgRgb,
+      );
+    }
+
+    // 6. Linux
+    if (Directory('linux').existsSync()) {
+      LinuxIconGenerator.generate(
+        baseImage: baseImage,
+        bgImage: bgImage,
+        bgRgb: bgRgb,
+      );
+    }
   }
 
-  /// High-resolution, anti-aliased white silhouettes matching Android notification specs.
+  /// Generates Android status bar notification silhouettes with custom naming.
   static void generateNotificationIcons(
     String iconPath, {
     String iconName = 'ic_notification',
   }) {
-    var image = loadAndValidateIcon(iconPath);
-    final cleanIconName = iconName.replaceAll(
-      '.png',
-      '',
-    ); // Strip extension if provided
-
-    if (image.numChannels < 4 || image.hasPalette) {
-      image = image.convert(numChannels: 4);
-    }
-
-    final densities = {
-      'drawable-mdpi': 24,
-      'drawable-hdpi': 36,
-      'drawable-xhdpi': 48,
-      'drawable-xxhdpi': 72,
-      'drawable-xxxhdpi': 96,
-    };
-
-    for (final entry in densities.entries) {
-      final targetSize = entry.value;
-
-      final scaled = img.copyResize(
-        image,
-        width: targetSize,
-        height: targetSize,
-        interpolation: img.Interpolation.average,
-      );
-
-      for (int y = 0; y < scaled.height; y++) {
-        for (int x = 0; x < scaled.width; x++) {
-          final p = scaled.getPixel(x, y);
-          if (p.a > 0) {
-            scaled.setPixelRgba(x, y, 255, 255, 255, p.a);
-          }
-        }
-      }
-
-      final dir = Directory('android/app/src/main/res/${entry.key}');
-      if (!dir.existsSync()) {
-        dir.createSync(recursive: true);
-      }
-
-      // If a custom name is used, remove the default 'ic_notification.png' to prevent stale duplicates
-      if (cleanIconName != 'ic_notification') {
-        final oldDefaultFile = File('${dir.path}/ic_notification.png');
-        if (oldDefaultFile.existsSync()) {
-          try {
-            oldDefaultFile.deleteSync();
-          } catch (_) {}
-        }
-      }
-
-      File(
-        '${dir.path}/$cleanIconName.png',
-      ).writeAsBytesSync(img.encodePng(scaled));
-    }
+    NotificationIconGenerator.generate(iconPath: iconPath, iconName: iconName);
   }
 
-  /// Generates Play Store 512x512 icon (solid background) and 1024x500 banner.
+  /// Generates Google Play Store 512x512 icon and 1024x500 banner.
   static void generatePlayStoreAssets({
     required String iconPath,
     required String bgColorHex,
     String? appName,
     String? tagline,
   }) {
-    final source = loadAndValidateIcon(iconPath);
-    final outputDir = Directory('branding_assets/play_store');
-    if (!outputDir.existsSync()) outputDir.createSync(recursive: true);
-
-    final bgRgb = _parseHexColor(bgColorHex);
-
-    // 1. Google Play Store 512x512 Icon
-    final storeCanvas = img.Image(width: 512, height: 512);
-    img.fill(storeCanvas, color: bgRgb);
-
-    const logoTargetSize = 380;
-    final storeLogo = img.copyResize(
-      source,
-      width: logoTargetSize,
-      height: logoTargetSize,
-      interpolation: img.Interpolation.average,
+    PlayStoreGenerator.generate(
+      iconPath: iconPath,
+      bgColorHex: bgColorHex,
+      appName: appName,
+      tagline: tagline,
     );
-    img.compositeImage(
-      storeCanvas,
-      storeLogo,
-      dstX: ((512 - logoTargetSize) / 2).round(),
-      dstY: ((512 - logoTargetSize) / 2).round(),
-    );
-    File(
-      '${outputDir.path}/play_store_512.png',
-    ).writeAsBytesSync(img.encodePng(storeCanvas));
-
-    // 2. Feature Graphic Banner (1024x500)
-    final banner = img.Image(width: 1024, height: 500);
-    img.fill(banner, color: bgRgb);
-
-    const bannerLogoSize = 220;
-    final bannerLogo = img.copyResize(
-      source,
-      width: bannerLogoSize,
-      height: bannerLogoSize,
-      interpolation: img.Interpolation.average,
-    );
-    final int logoX = (appName != null) ? 120 : (1024 - bannerLogoSize) ~/ 2;
-    final int logoY = (500 - bannerLogoSize) ~/ 2;
-
-    img.compositeImage(banner, bannerLogo, dstX: logoX, dstY: logoY);
-
-    if (appName != null) {
-      img.drawString(
-        banner,
-        appName,
-        font: img.arial48,
-        x: logoX + bannerLogoSize + 45,
-        y: logoY + 60,
-        color: img.ColorRgb8(255, 255, 255),
-      );
-
-      if (tagline != null && tagline.isNotEmpty) {
-        img.drawString(
-          banner,
-          tagline,
-          font: img.arial24,
-          x: logoX + bannerLogoSize + 47,
-          y: logoY + 125,
-          color: img.ColorRgb8(200, 200, 200),
-        );
-      }
-    }
-
-    File(
-      '${outputDir.path}/feature_graphic_1024x500.png',
-    ).writeAsBytesSync(img.encodePng(banner));
-  }
-
-  static img.ColorRgb8 _parseHexColor(String hex) {
-    final clean = hex.replaceAll('#', '');
-    final val = int.parse(clean, radix: 16);
-    return img.ColorRgb8((val >> 16) & 0xFF, (val >> 8) & 0xFF, val & 0xFF);
   }
 }
