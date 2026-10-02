@@ -17,36 +17,40 @@ class InitService {
 
     const template = '''
 # ==============================================================================
-# FLUTTER REBRAND KIT CONFIGURATION (rebrand_kit.yaml)
-# All properties are optional. Include only what you need.
+# FLUTTER REBRAND KIT EXAMPLE CONFIGURATION
+# Place this in your project root as "rebrand_kit.yaml"
+# All fields are optional!
 # ==============================================================================
 
-# 1. Application Identity (Android, iOS, macOS, Web, Windows, Linux)
-app_name: "My App"
-package_id: "com.example.myapp"
-version: "1.0.0+1"
+# 1. App Identity
+app_name: "Super App"
+package_id: "com.acme.superapp"
+version: "1.3.0+1"
 
 # 2. Launcher Icons (1024x1024 Transparent PNG recommended)
-launcher_icon: "assets/logo.png"
+launcher_icon: "assets/branding/app_logo_1024.png"
 launcher_icon_bg_color: "#FFFFFF"
-# launcher_icon_bg_image: "assets/adaptive_bg.png"
-# launcher_icon_monochrome: "assets/custom_mono.png"
+# launcher_icon_bg_image: "assets/branding/adaptive_bg.png"
+# launcher_icon_monochrome: "assets/branding/custom_mono.png"
 
-# 3. Android Notification Silhouette
-notification_icon: "assets/logo.png"
-notification_icon_name: "ic_notification"
+# 3. Notification Icon
+notification_icon: "assets/branding/app_logo_1024.png"
+notification_icon_name: "ic_stat_notification"
 
 # 4. Native Splash Screen
-splash_image: "assets/logo.png"
-splash_color: "#FFFFFF"
+splash_image: "assets/branding/app_logo_1024.png"
+splash_color: "#0F172A"
+splash_dark_image: "assets/branding/app_logo_1024.png"
+splash_dark_color: "#020617"
+splash_branding_image: "assets/branding/branding_footer.png" # Optional: Branding footer image (recommended: 800x320 PNG, 2.5:1 ratio)
 
-# 5. Google Play Store Marketing Kit
+# 5. Play Store Marketing Assets
 play_store:
   generate: true
-  background_color: "#1E1E2E"
-  tagline: "Your App Tagline Here"
+  background_color: "#0F172A"
+  tagline: "The fastest way to manage your work"
   
-
+  
 # Run the CLI command from your terminal to execute
 # dart run flutter_rebrand_kit:rebrand_kit  
   

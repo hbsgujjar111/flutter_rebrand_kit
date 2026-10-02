@@ -116,7 +116,7 @@ splash_color: "#1E1E2E"
 # Optional: Dark mode splash
 splash_dark_image: "assets/branding/app_logo_1024.png"
 splash_dark_color: "#0F0F0F"
-# Optional: Branding footer image (Android 12+, iOS, Web)
+# Optional: Branding footer image (recommended: 800x320 PNG, 2.5:1 ratio)
 splash_branding_image: "assets/branding/branding_footer.png"
 
 # 5. Play Store Marketing Assets
@@ -169,35 +169,38 @@ dart run flutter_rebrand_kit:rebrand_kit
 
 ## Master Image Guidelines
 
-> **Recommendation:** Provide a **1024×1024 PNG with a transparent background**.
+> **Recommended Dimensions:**
+> * **Master App Icon:** `1024×1024 px` PNG with a transparent background.
+> * **Branding Footer Logo:** `800×320 px` PNG (2.5:1 ratio) with a transparent background.
 
-* **Adaptive Icons & Splash:** The tool centers the transparent logo within safe boundaries over your configured background color (`launcher_icon_bg_color` or `splash_color`), preventing Android 12+ circular crop clipping.
-* **Notification Silhouettes:** The alpha channel is used to generate clean white silhouettes (`#FFFFFF`) for Android status bars.
+### Why Transparency Matters:
+* **Adaptive Icons & Splash:** The tool centers the transparent logo within safe boundaries over your configured background color (`launcher_icon_bg_color` or `splash_color`), preventing circular crop clipping on Android 12+.
+* **Notification Silhouettes:** The alpha channel is used to extract clean white silhouettes (`#FFFFFF`) for Android status bars.
 * **Store Compliance:** Google Play and Apple App Store require opaque app icons. The tool automatically composites transparent assets onto solid canvases to ensure store submission requirements are met.
 
 ---
 
 ## Configuration Reference
 
-| Property                      | Type           | Required | Default             | Description                                                                            |
-|:------------------------------|:---------------|:--------:|:--------------------|:---------------------------------------------------------------------------------------|
-| `app_name`                    | `String`       |    No    | `null`              | Display name across Android, iOS, macOS, Web, Windows, and Linux.                      |
-| `package_id`                  | `String`       |    No    | `null`              | Application/Bundle ID. Updates build files and migrates Kotlin/Java folders.           |
-| `version`                     | `String`       |    No    | `null`              | Version and build number in `pubspec.yaml` (`x.y.z+build`).                            |
-| `launcher_icon`               | `String`       |    No    | `null`              | Master logo (**1024×1024 transparent PNG**). Exports icons across all 6 platforms.     |
-| `launcher_icon_bg_color`      | `String (Hex)` |    No    | `"#FFFFFF"`         | Background color for Android adaptive icons and fallback canvases.                     |
-| `launcher_icon_bg_image`      | `String`       |    No    | `null`              | Background image for Android adaptive icons (overrides `launcher_icon_bg_color`).      |
-| `launcher_icon_monochrome`    | `String`       |    No    | `null`              | Custom silhouette for Android 13+ theming (auto-generated from logo if omitted).       |
-| `notification_icon`           | `String`       |    No    | `null`              | Source logo. Auto-converts to an anti-aliased white silhouette (`drawable-*`).         |
-| `notification_icon_name`      | `String`       |    No    | `"ic_notification"` | Custom output filename for Android notification drawables. Auto-cleans stale defaults. |
-| `splash_image`                | `String`       |    No    | `null`              | Splash logo. Padded to safe boundaries to prevent circular crop issues.                |
-| `splash_color`                | `String (Hex)` |    No    | `"#FFFFFF"`         | Background color for native splash screens on Android, iOS, and Web.                   |
-| `splash_dark_image`           | `String`       |    No    | `null`              | Optional dark mode splash logo for Android and iOS.                                    |
-| `splash_dark_color`           | `String (Hex)` |    No    | `null`              | Optional dark mode splash background color (`values-night`, iOS, and Web).             |
-| `splash_branding_image`       | `String`       |    No    | `null`              | Optional branding footer logo for Android 12+, pre-12, iOS, and Web.                   |
-| `play_store.generate`         | `bool`         |    No    | `false`             | Enables generating assets in `branding_assets/play_store/`.                            |
-| `play_store.background_color` | `String (Hex)` |    No    | `"#1E1E2E"`         | Canvas color for the 512×512 store icon and 1024×500 feature graphic.                  |
-| `play_store.tagline`          | `String`       |    No    | `null`              | Subtitle printed on the 1024×500 feature graphic banner.                               |
+| Property                      | Type           | Required | Default             | Description                                                                                                     |
+|:------------------------------|:---------------|:--------:|:--------------------|:----------------------------------------------------------------------------------------------------------------|
+| `app_name`                    | `String`       |    No    | `null`              | Display name across Android, iOS, macOS, Web, Windows, and Linux.                                               |
+| `package_id`                  | `String`       |    No    | `null`              | Application/Bundle ID. Updates build files and migrates Kotlin/Java folders.                                    |
+| `version`                     | `String`       |    No    | `null`              | Version and build number in `pubspec.yaml` (`x.y.z+build`).                                                     |
+| `launcher_icon`               | `String`       |    No    | `null`              | Master logo (**1024×1024 transparent PNG**). Exports icons across all 6 platforms.                              |
+| `launcher_icon_bg_color`      | `String (Hex)` |    No    | `"#FFFFFF"`         | Background color for Android adaptive icons and fallback canvases.                                              |
+| `launcher_icon_bg_image`      | `String`       |    No    | `null`              | Background image for Android adaptive icons (overrides `launcher_icon_bg_color`).                               |
+| `launcher_icon_monochrome`    | `String`       |    No    | `null`              | Custom silhouette for Android 13+ theming (auto-generated from logo if omitted).                                |
+| `notification_icon`           | `String`       |    No    | `null`              | Source logo. Auto-converts to an anti-aliased white silhouette (`drawable-*`).                                  |
+| `notification_icon_name`      | `String`       |    No    | `"ic_notification"` | Custom output filename for Android notification drawables. Auto-cleans stale defaults.                          |
+| `splash_image`                | `String`       |    No    | `null`              | Splash logo. Padded to safe boundaries to prevent circular crop issues.                                         |
+| `splash_color`                | `String (Hex)` |    No    | `"#FFFFFF"`         | Background color for native splash screens on Android, iOS, and Web.                                            |
+| `splash_dark_image`           | `String`       |    No    | `null`              | Optional dark mode splash logo for Android and iOS.                                                             |
+| `splash_dark_color`           | `String (Hex)` |    No    | `null`              | Optional dark mode splash background color (`values-night`, iOS, and Web).                                      |
+| `splash_branding_image`       | `String`       |    No    | `null`              | Optional branding footer logo for Android 12+, pre-12, iOS, and Web (**recommended: 800×320 px, 2.5:1 ratio**). |
+| `play_store.generate`         | `bool`         |    No    | `false`             | Enables generating assets in `branding_assets/play_store/`.                                                     |
+| `play_store.background_color` | `String (Hex)` |    No    | `"#1E1E2E"`         | Canvas color for the 512×512 store icon and 1024×500 feature graphic.                                           |
+| `play_store.tagline`          | `String`       |    No    | `null`              | Subtitle printed on the 1024×500 feature graphic banner.                                                        |
 
 ---
 

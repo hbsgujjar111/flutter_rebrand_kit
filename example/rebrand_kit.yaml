@@ -24,7 +24,7 @@ splash_image: "assets/branding/app_logo_1024.png"
 splash_color: "#0F172A"
 splash_dark_image: "assets/branding/app_logo_1024.png"
 splash_dark_color: "#020617"
-splash_branding_image: "assets/branding/branding_footer.png"
+splash_branding_image: "assets/branding/branding_footer.png" # Optional: Branding footer image (recommended: 800x320 PNG, 2.5:1 ratio)
 
 # 5. Play Store Marketing Assets
 play_store:
