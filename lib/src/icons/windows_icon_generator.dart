@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:image/image.dart' as img;
+
 import '../utils/ico_encoder.dart';
 
 /// Generator for multi-resolution Windows binary `.ico` application icons.

@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import 'package:image/image.dart' as img;
+
 import '../utils/image_utils.dart';
 
 /// Generator for Google Play Store marketing assets (512x512 icon & 1024x500 banner).

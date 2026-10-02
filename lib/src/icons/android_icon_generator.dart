@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:image/image.dart' as img;
+
 import '../utils/image_utils.dart';
 
 /// Generator for Android legacy mipmaps, adaptive icons, and Android 13+ monochrome icons.

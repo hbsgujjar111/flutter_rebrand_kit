@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:image/image.dart' as img;
 
 /// Generator for macOS desktop AppIcon catalog.

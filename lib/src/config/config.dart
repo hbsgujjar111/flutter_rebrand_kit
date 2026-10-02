@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:yaml/yaml.dart';
 
 /// Configuration options for Flutter Rebrand Kit.
@@ -14,6 +15,9 @@ class RebrandConfig {
   final String notificationIconName;
   final String? splashImage;
   final String splashColor;
+  final String? splashDarkImage;
+  final String? splashDarkColor;
+  final String? splashBrandingImage;
   final bool generatePlayStoreAssets;
   final String playStoreBannerBgColor;
   final String? playStoreTagline;
@@ -30,6 +34,9 @@ class RebrandConfig {
     this.notificationIconName = 'ic_notification',
     this.splashImage,
     this.splashColor = '#FFFFFF',
+    this.splashDarkImage,
+    this.splashDarkColor,
+    this.splashBrandingImage,
     this.generatePlayStoreAssets = false,
     this.playStoreBannerBgColor = '#1E1E2E',
     this.playStoreTagline,
@@ -74,6 +81,9 @@ class RebrandConfig {
           yamlMap['notification_icon_name']?.toString() ?? 'ic_notification',
       splashImage: yamlMap['splash_image']?.toString(),
       splashColor: yamlMap['splash_color']?.toString() ?? '#FFFFFF',
+      splashDarkImage: yamlMap['splash_dark_image']?.toString(),
+      splashDarkColor: yamlMap['splash_dark_color']?.toString(),
+      splashBrandingImage: yamlMap['splash_branding_image']?.toString(),
       generatePlayStoreAssets: playStore?['generate'] == true,
       playStoreBannerBgColor:
           playStore?['background_color']?.toString() ?? '#1E1E2E',

@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.3.0
+
+### Native Splash Engine Overhaul
+- **System Dark Mode Splash:** Added `splash_dark_color` and `splash_dark_image` support across Android `values-night` resources and iOS Storyboard dark asset catalogs.
+- **Android 12+ Branding Footer:** Added `splash_branding_image` support via `windowSplashScreenBrandingImage` on Android 12+, pre-12 bottom gravity in `launch_background.xml`, and iOS `BrandingImage.imageset`.
+- **Density-Scaled Splash Assets:** Generates splash and branding assets across all 5 Android density buckets (`drawable-mdpi` to `drawable-xxxhdpi`) to prevent downscaling blurriness on high-DPI screens.
+- **Mathematical 60% Safe-Zone Scaling:** Aligned splash logo sizing with Android 12 specifications, ensuring logos fit within a 640px circle diameter to prevent circular crop clipping.
+- **Web Splash Preloader & Auto-Dismiss:** Injects a responsive CSS/HTML preloader into `web/index.html` with dark mode support, click/drag protection (`pointer-events: none`), and an automatic `flutter-first-frame` listener to cleanly dismiss the overlay once Flutter mounts.
+
+### Linux Runtime Linkage & Desktop Fixes
+- **GTK Window Icon Runtime Loading:** Injects `gtk_window_set_icon_from_file` into `linux/runner/my_application.cc` so the application icon displays on the Linux dock and window title bar.
+- **CMake Binary Output Synchronization:** Updates `set(BINARY_NAME ...)` in `linux/CMakeLists.txt` alongside `APPLICATION_ID`.
+
+### CLI Experience & Performance
+- **Interactive Multi-Step Logging:** Replaced generic CLI messages with detailed, transparent sub-step logs across all 7 rebranding tasks.
+- **Asynchronous Parallel Processing:** Implemented parallel PNG encoding for multi-density splash assets, reducing execution time to ~1–2 seconds.
+
+---
+
 ## 1.2.0
 
 ### All-Platform Launcher Icon Engine

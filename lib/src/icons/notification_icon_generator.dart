@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import 'package:image/image.dart' as img;
+
 import '../utils/image_utils.dart';
 
 /// Generator for Android status bar monochrome notification icons.

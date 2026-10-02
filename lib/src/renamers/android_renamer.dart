@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:path/path.dart' as p;
 
 /// Renamer service for Android manifests, Gradle build scripts, and source tree migration.

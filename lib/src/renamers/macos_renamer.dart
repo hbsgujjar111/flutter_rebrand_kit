@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:path/path.dart' as p;
 
 /// Renamer service for macOS AppInfo.xcconfig and Xcode project configurations.

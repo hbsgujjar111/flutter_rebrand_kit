@@ -20,27 +20,27 @@ Flutter Rebrand Kit is engineered from the ground up as an independent, single-p
 ## What This Tool Does
 
 - ✓ **App Name:** Updates application titles across Android, iOS, macOS, Web, Windows, and Linux.
-- ✓ **Package ID:** Updates bundle identifiers across Gradle (Groovy & Kotlin DSL), Xcode, and CMake build targets.
+- ✓ **Package ID:** Updates bundle identifiers across Gradle (Groovy & Kotlin DSL), Xcode, and CMake build configurations.
 - ✓ **Source Code Migration:** Physically relocates Kotlin and Java folder trees to match new package identifiers while updating package declarations and internal imports.
 - ✓ **Launcher Icons:** Generates complete launcher icon sets across all 6 platforms (Android, iOS, macOS, Web, Windows, and Linux).
 - ✓ **Themed & Dark Icons:** Generates Android 13+ Material You monochrome silhouettes and iOS 18 Dark & Tinted icons.
 - ✓ **Notification Icons:** Generates anti-aliased white silhouettes with full-canvas resolution, custom drawable naming, and automatic stale asset cleanup.
-- ✓ **Native Splash Screen:** Wires Android 12+ Splash API, Android legacy drawables, and iOS Storyboards with safe margin bounds.
+- ✓ **Native Splash Screen:** Wires Android 12+ Splash API, Android legacy drawables, iOS Storyboards, and Web preloaders with dark mode and branding footer support.
 - ✓ **Store Marketing Assets:** Exports a compliant 512×512 Google Play icon and a 1024×500 feature graphic banner with custom typography and taglines.
 
 ---
 
 ## Platform Support
 
-| Feature                      |             Android             |            iOS            |       macOS       |         Web         |      Windows      |       Linux       |
-|:-----------------------------|:-------------------------------:|:-------------------------:|:-----------------:|:-------------------:|:-----------------:|:-----------------:|
-| **App Name**                 |                ✓                |             ✓             |         ✓         |          ✓          |         ✓         |         ✓         |
-| **Package / Bundle ID**      |      ✓ *(Tree Migration)*       |             ✓             |         ✓         |         N/A         | ✓ *(Binary Name)* |   ✓ *(App ID)*    |
-| **Version & Build**          |                ✓                |             ✓             |         ✓         |          ✓          |         ✓         |         ✓         |
-| **Launcher Icons**           | ✓ *(Adaptive + Themed + Round)* | ✓ *(Light, Dark, Tinted)* | ✓ *(.appiconset)* | ✓ *(Favicon + PWA)* | ✓ *(Binary .ico)* | ✓ *(Desktop PNG)* |
-| **Notification Icons**       | ✓ *(Custom Name + Silhouettes)* |            N/A            |        N/A        |         N/A         |        N/A        |        N/A        |
-| **Native Splash Screen**     |     ✓ *(API 31+ & Legacy)*      |  ✓ *(Storyboard Asset)*   |        N/A        |      ⏳ Planned      |        N/A        |        N/A        |
-| **Play Store Marketing Kit** |      ✓ *(512px & Banner)*       |            N/A            |        N/A        |         N/A         |        N/A        |        N/A        |
+| Feature                      | Android | iOS | macOS | Web | Windows | Linux |
+|:-----------------------------|:-------:|:---:|:-----:|:---:|:-------:|:-----:|
+| **App Name**                 |    ✅    |  ✅  |   ✅   |  ✅  |    ✅    |   ✅   |
+| **Package / Bundle ID**      |    ✅    |  ✅  |   ✅   | N/A |    ✅    |   ✅   |
+| **Version & Build**          |    ✅    |  ✅  |   ✅   |  ✅  |    ✅    |   ✅   |
+| **Launcher Icons**           |    ✅    |  ✅  |   ✅   |  ✅  |    ✅    |   ✅   |
+| **Notification Icons**       |    ✅    | N/A |  N/A  | N/A |   N/A   |  N/A  |
+| **Native Splash Screen**     |    ✅    |  ✅  |  N/A  |  ✅  |   N/A   |  N/A  |
+| **Play Store Marketing Kit** |    ✅    | N/A |  N/A  | N/A |   N/A   |  N/A  |
 
 ---
 
@@ -54,6 +54,10 @@ This tool addresses several real-world edge cases and native platform requiremen
 - **Built-In Windows Binary `.ico` Encoder:** Contains an internal multi-resolution binary encoder that stitches `16×16`, `32×32`, `48×48`, and `256×256` frames directly into `windows/runner/resources/app_icon.ico` using a pure-Dart binary packer without requiring external C libraries.
 - **Full iOS Asset Coverage:** Generates all 20 standard iOS asset sizes (including legacy `@1x` slots: `20@1x`, `29@1x`, `40@1x`, and `76@1x`), ensuring icons render consistently in iPad search and the iOS App Switcher.
 - **iOS 18 Dark & Tinted Variants:** Supports Xcode 16 / iOS 18 Dark Mode and Tinted home screen icons across all resolution variants with proper luminosity appearance tags.
+- **Density-Scaled Splash Assets:** Generates splash and branding logos across all 5 Android density buckets (`mdpi` to `xxxhdpi`), preventing blurriness caused by OS image stretching.
+- **Mathematical Splash Safe Boundaries:** Centers splash artwork within an inner 640px circle boundary ($160\text{dp}$ Android 12 window), preventing Google's circular mask from clipping logo edges.
+- **Web Splash Auto-Dismissal:** Injects `pointer-events: none` and an automatic `flutter-first-frame` event listener into `web/index.html` so web splash screens cleanly dismiss without blocking user interaction.
+- **Linux Runtime Window Icon Linkage:** Automatically injects `gtk_window_set_icon_from_file` into `linux/runner/my_application.cc` so icons appear in the Linux dock and window title bar.
 - **Store-Compliant Alpha Management:** Automatically composites transparent source PNGs over solid backgrounds for Apple App Store and Google Play exports, preventing automated submission rejections.
 - **Desktop Executable Metadata:** Updates Windows executable metadata (`FileDescription`, `ProductName`, `InternalName` in `Runner.rc`) and Linux GTK HeaderBar titles alongside primary window titles.
 - **High-Fidelity Notification Rendering:** Avoids stroke loss on delicate line art by rendering to full canvas dimensions (`24` to `96px`), preserving anti-aliased subpixels, and supporting custom drawable names (`notification_icon_name`) while cleaning up stale default assets.
@@ -75,7 +79,7 @@ flutter pub add -d flutter_rebrand_kit
 Generate a starter configuration file in your project root:
 
 ```bash
-dart run flutter_rebrand_kit:rebrand_kit init
+dart run flutter_rebrand_kit:init
 ```
 
 ### 3. Configure
@@ -109,6 +113,11 @@ notification_icon_name: "ic_stat_notification" # Optional (defaults to "ic_notif
 # 4. Native Splash Screen
 splash_image: "assets/branding/app_logo_1024.png"
 splash_color: "#1E1E2E"
+# Optional: Dark mode splash
+splash_dark_image: "assets/branding/app_logo_1024.png"
+splash_dark_color: "#0F0F0F"
+# Optional: Branding footer image (Android 12+, iOS, Web)
+splash_branding_image: "assets/branding/branding_footer.png"
 
 # 5. Play Store Marketing Assets
 play_store:
@@ -124,7 +133,7 @@ Add the `rebrand_kit:` block at the bottom of your `pubspec.yaml`:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_rebrand_kit: ^1.2.0
+  flutter_rebrand_kit: ^1.3.0
 
 rebrand_kit:
   app_name: "My Awesome App"
@@ -136,6 +145,9 @@ rebrand_kit:
   notification_icon_name: "ic_stat_notification"
   splash_image: "assets/branding/app_logo_1024.png"
   splash_color: "#1E1E2E"
+  splash_dark_image: "assets/branding/app_logo_1024.png"
+  splash_dark_color: "#0F0F0F"
+  splash_branding_image: "assets/branding/branding_footer.png"
   play_store:
     generate: true
     background_color: "#1E1E2E"
@@ -179,7 +191,10 @@ dart run flutter_rebrand_kit:rebrand_kit
 | `notification_icon`           | `String`       |    No    | `null`              | Source logo. Auto-converts to an anti-aliased white silhouette (`drawable-*`).         |
 | `notification_icon_name`      | `String`       |    No    | `"ic_notification"` | Custom output filename for Android notification drawables. Auto-cleans stale defaults. |
 | `splash_image`                | `String`       |    No    | `null`              | Splash logo. Padded to safe boundaries to prevent circular crop issues.                |
-| `splash_color`                | `String (Hex)` |    No    | `"#FFFFFF"`         | Background color for native splash screens on Android and iOS.                         |
+| `splash_color`                | `String (Hex)` |    No    | `"#FFFFFF"`         | Background color for native splash screens on Android, iOS, and Web.                   |
+| `splash_dark_image`           | `String`       |    No    | `null`              | Optional dark mode splash logo for Android and iOS.                                    |
+| `splash_dark_color`           | `String (Hex)` |    No    | `null`              | Optional dark mode splash background color (`values-night`, iOS, and Web).             |
+| `splash_branding_image`       | `String`       |    No    | `null`              | Optional branding footer logo for Android 12+, pre-12, iOS, and Web.                   |
 | `play_store.generate`         | `bool`         |    No    | `false`             | Enables generating assets in `branding_assets/play_store/`.                            |
 | `play_store.background_color` | `String (Hex)` |    No    | `"#1E1E2E"`         | Canvas color for the 512×512 store icon and 1024×500 feature graphic.                  |
 | `play_store.tagline`          | `String`       |    No    | `null`              | Subtitle printed on the 1024×500 feature graphic banner.                               |
@@ -199,9 +214,11 @@ dart run flutter_rebrand_kit:rebrand_kit
 | **Linux Desktop Icon**                  | `linux/runner/assets/app_icon.png` *(256×256)*                                        |
 | **Web Favicon & PWA Icons**             | `web/favicon.png`, `web/icons/Icon-*.png`, `web/icons/Icon-maskable-*.png`            |
 | **Android Notification Icons**          | `android/app/src/main/res/drawable-*/<icon_name>.png`                                 |
-| **Android Splash (<12)**                | `android/app/src/main/res/drawable/launch_background.xml`                             |
-| **Android Splash (12+)**                | `android/app/src/main/res/values-v31/styles.xml`                                      |
-| **iOS Launch Screen**                   | `ios/Runner/Assets.xcassets/LaunchImage.imageset/`                                    |
+| **Android Splash (Density Buckets)**    | `android/app/src/main/res/drawable-*/splash_logo.png`, `splash_branding.png`          |
+| **Android Splash (<12)**                | `android/app/src/main/res/drawable/launch_background.xml` *(+ night variant)*         |
+| **Android Splash (12+)**                | `android/app/src/main/res/values-v31/styles.xml` *(+ night variant)*                  |
+| **iOS Launch Screen**                   | `ios/Runner/Assets.xcassets/LaunchImage.imageset/`, `BrandingImage.imageset/`         |
+| **Web Splash Screen**                   | `web/splash/splash.png`, `web/splash/branding.png`, and `web/index.html`              |
 | **Play Store Icon (512×512)**           | `branding_assets/play_store/play_store_512.png`                                       |
 | **Feature Banner (1024×500)**           | `branding_assets/play_store/feature_graphic_1024x500.png`                             |
 
