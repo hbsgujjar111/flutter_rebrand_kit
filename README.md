@@ -75,7 +75,7 @@ flutter pub add -d flutter_rebrand_kit
 Generate a starter configuration file in your project root:
 
 ```bash
-dart run flutter_rebrand_kit:rebrand_kit init
+dart run flutter_rebrand_kit:init
 ```
 
 ### 3. Configure

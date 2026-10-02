@@ -29,3 +29,4 @@ dev_dependencies:
 
 executables:
   rebrand_kit: rebrand_kit
+  init: init

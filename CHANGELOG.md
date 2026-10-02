@@ -3,7 +3,7 @@
 ## 1.2.0
 
 ### All-Platform Launcher Icon Engine
-- **CLI Configuration Scaffolding (`init` command):** Added `init` command support (`dart run flutter_rebrand_kit:rebrand_kit init`) to automatically generate a pre-commented `rebrand_kit.yaml` starter template in the project root.
+- **CLI Configuration Scaffolding (`init` command):** Added `init` command support (`dart run flutter_rebrand_kit:init`) to automatically generate a pre-commented `rebrand_kit.yaml` starter template in the project root.
 - **6-Platform Icon Generation:** Generates launcher icons across Android, iOS, macOS, Web, Windows, and Linux from a single master asset.
 - **iOS 18 Dark & Tinted Variants:** Added support for Xcode 16 / iOS 18 Dark Mode and Tinted home screen icons (`Icon-App-Dark-*`, `Icon-App-Tinted-*`) with full scale coverage across all legacy and modern slots.
 - **Pure-Dart Windows `.ico` Encoder:** Encodes and packs 4 resolutions (`16×16`, `32×32`, `48×48`, `256×256`) directly into a valid Win32 binary container at `windows/runner/resources/app_icon.ico` without external tools.

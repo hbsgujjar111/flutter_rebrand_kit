@@ -6,7 +6,7 @@ import 'package:flutter_rebrand_kit/src/splash/splash_service.dart';
 import 'package:flutter_rebrand_kit/src/utils/logger.dart';
 
 void main(List<String> args) {
-  // Support CLI init command: dart run flutter_rebrand_kit:rebrand_kit init
+  // Support CLI init command: dart run flutter_rebrand_kit:init
   if (args.isNotEmpty && args[0].toLowerCase() == 'init') {
     InitService.createTemplate();
     return;
