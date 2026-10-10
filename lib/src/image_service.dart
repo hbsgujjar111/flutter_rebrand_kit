@@ -21,8 +21,13 @@ class ImageService {
     return ImageUtils.loadAndValidateIcon(path);
   }
 
-  /// Generates launcher icons across all platforms.
-  static void generateLauncherIcons({
+  /// Generates launcher icons for every platform folder present in the
+  /// project and returns the names of the platforms that were updated.
+  ///
+  /// Platforms whose root folder (`android/`, `ios/`, `macos/`, `web/`,
+  /// `windows/`, `linux/`) does not exist are skipped, so no stray folders are
+  /// created.
+  static List<String> generateLauncherIcons({
     required String iconPath,
     required String bgColorHex,
     String? bgImagePath,
@@ -41,65 +46,74 @@ class ImageService {
       customMonochrome = ImageUtils.loadAndValidateIcon(monochromeIconPath);
     }
 
-    // 1. Android
-    AndroidIconGenerator.generate(
-      baseImage: baseImage,
-      bgRgb: bgRgb,
-      bgColorHex: bgColorHex,
-      bgImage: bgImage,
-      customMonochrome: customMonochrome,
-    );
+    final generated = <String>[];
 
-    // 2. iOS
-    IosIconGenerator.generate(
-      baseImage: baseImage,
-      bgImage: bgImage,
-      bgRgb: bgRgb,
-    );
+    if (Directory('android').existsSync()) {
+      AndroidIconGenerator.generate(
+        baseImage: baseImage,
+        bgRgb: bgRgb,
+        bgColorHex: bgColorHex,
+        bgImage: bgImage,
+        customMonochrome: customMonochrome,
+      );
+      generated.add('Android');
+    }
 
-    // 3. macOS
+    if (Directory('ios').existsSync()) {
+      IosIconGenerator.generate(
+        baseImage: baseImage,
+        bgImage: bgImage,
+        bgRgb: bgRgb,
+      );
+      generated.add('iOS');
+    }
+
     if (Directory('macos').existsSync()) {
       MacOsIconGenerator.generate(
         baseImage: baseImage,
         bgImage: bgImage,
         bgRgb: bgRgb,
       );
+      generated.add('macOS');
     }
 
-    // 4. Web
     if (Directory('web').existsSync()) {
       WebIconGenerator.generate(
         baseImage: baseImage,
         bgImage: bgImage,
         bgRgb: bgRgb,
       );
+      generated.add('Web');
     }
 
-    // 5. Windows
     if (Directory('windows').existsSync()) {
-      WindowsIconGenerator.generate(
-        baseImage: baseImage,
-        bgImage: bgImage,
-        bgRgb: bgRgb,
-      );
+      WindowsIconGenerator.generate(baseImage: baseImage);
+      generated.add('Windows');
     }
 
-    // 6. Linux
     if (Directory('linux').existsSync()) {
       LinuxIconGenerator.generate(
         baseImage: baseImage,
         bgImage: bgImage,
         bgRgb: bgRgb,
       );
+      generated.add('Linux');
     }
+
+    return generated;
   }
 
   /// Generates Android status bar notification silhouettes with custom naming.
-  static void generateNotificationIcons(
+  ///
+  /// Returns false when the project has no `android/` folder.
+  static bool generateNotificationIcons(
     String iconPath, {
     String iconName = 'ic_notification',
   }) {
-    NotificationIconGenerator.generate(iconPath: iconPath, iconName: iconName);
+    return NotificationIconGenerator.generate(
+      iconPath: iconPath,
+      iconName: iconName,
+    );
   }
 
   /// Generates Google Play Store 512x512 icon and 1024x500 banner.

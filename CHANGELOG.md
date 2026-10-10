@@ -2,15 +2,39 @@
 
 ## 1.2.0
 
-### All-Platform Launcher Icon Engine
-- **CLI Configuration Scaffolding (`init` command):** Added `init` command support (`dart run flutter_rebrand_kit:init`) to automatically generate a pre-commented `rebrand_kit.yaml` starter template in the project root.
-- **6-Platform Icon Generation:** Generates launcher icons across Android, iOS, macOS, Web, Windows, and Linux from a single master asset.
-- **iOS 18 Dark & Tinted Variants:** Added support for Xcode 16 / iOS 18 Dark Mode and Tinted home screen icons (`Icon-App-Dark-*`, `Icon-App-Tinted-*`) with full scale coverage across all legacy and modern slots.
-- **Pure-Dart Windows `.ico` Encoder:** Encodes and packs 4 resolutions (`16×16`, `32×32`, `48×48`, `256×256`) directly into a valid Win32 binary container at `windows/runner/resources/app_icon.ico` without external tools.
-- **Android Round Icon Support:** Generates `ic_launcher_round.xml` and legacy round mipmap variants (`mipmap-*/ic_launcher_round.png`) for OEM launchers that enforce circular masks.
-- **Linux Desktop Icons:** Exports `linux/runner/assets/app_icon.png` (256×256) with solid background compositing for `.desktop` window managers.
-- **PWA-Compliant Web Icons:** Exports `web/favicon.png`, standard PWA icons (`192px`, `512px`), and full-bleed maskable icons (`Icon-maskable-192.png`, `Icon-maskable-512.png`) aligned with Google PWA specifications.
-- **Modular Architecture Refactor:** Refactored internal architecture into focused modules (`renamers/`, `icons/`, `splash/`, `marketing/`, `utils/`) for improved reliability and maintainability.
+### Added
+- **`init` command:** `dart run flutter_rebrand_kit:rebrand_kit init` (or `dart run flutter_rebrand_kit:init`) creates a commented `rebrand_kit.yaml`. An existing file is never overwritten.
+- **Launcher icons for all 6 platforms** from one master image: Android, iOS, macOS, Web, Windows and Linux. Platform folders that do not exist are skipped.
+- **Android round icons:** circular legacy `ic_launcher_round.png` plus `ic_launcher_round.xml`. `android:icon` / `android:roundIcon` are added to `<application>` when missing.
+- **iOS 18 Dark and Tinted icons** (1024 px, `Icon-App-Dark-1024x1024@1x.png`, `Icon-App-Tinted-1024x1024@1x.png`) next to the standard iPhone/iPad icon set.
+- **Windows `.ico`:** 16, 32, 48 and 256 px frames with transparency, written by a pure-Dart encoder to `windows/runner/resources/app_icon.ico`.
+- **Linux icon:** `linux/runner/assets/app_icon.png` (256×256).
+- **Web icons:** `web/favicon.png`, `web/icons/Icon-192.png` / `Icon-512.png` and maskable `Icon-maskable-192.png` / `Icon-maskable-512.png`.
+- **Input validation** before any file is modified: package ID, version, hex colors, notification icon name.
+- **Non-zero exit code** when the CLI fails; the launcher icon step reports which platforms were generated.
+- Warnings for opaque logos that would turn into solid white squares (themed and notification icons) and for non-square master images.
+
+### Fixed
+- **Names are escaped per file format.** App names containing `&`, quotes or `<` no longer break `Info.plist`, `manifest.json`, the Windows `.rc`/`main.cpp` or the Linux runner; non-ASCII names are written as C++ universal character names on Windows.
+- **Windows runner:** `window.CreateAndShow(...)` is no longer rewritten to `window.Create(...)` (broke older templates); `InternalName` and `OriginalFilename` now follow the new binary name.
+- **Android package ID:**
+  - only the first `applicationId` / `namespace` is rewritten (flavors keep theirs), commented-out lines are ignored, `applicationId = "…"` is supported in Groovy;
+  - the old base package is detected from `namespace` / `applicationId` / manifest instead of the first file found;
+  - a package such as `com.studio.flutterapp` is no longer mistaken for Flutter engine code;
+  - unrelated packages are not moved, files are placed by their declared package, debug/profile manifests are updated;
+  - only the `<application>` label changes, activity labels are kept.
+- **iOS / macOS bundle IDs:** test targets and extensions are detected from the project instead of a name heuristic, so an ID containing "widget" or "extension" is safe, re-running is idempotent, and the macOS `RunnerTests` target is no longer collapsed onto the main ID.
+- **`ic_launcher_background` color** is updated on every run (it used to keep the first value); `colors.xml` is edited in place and self-closing `<resources/>` files are handled.
+- **iOS icon catalog** now uses Apple's standard iPhone/iPad entries (including the iPad `@1x` slots); stale `Icon-App-*` files are removed.
+- **Native splash (Android):** `drawable-v21/launch_background.xml` is written (it overrides `drawable` on API 21+); logo assets are density-specific and sized for the Android 12 splash circle instead of a single oversized image; `values-v31/styles.xml` is merged instead of overwritten; `splash_color` replaced reliably.
+- **Native splash (iOS):** `splash_color` is applied to `LaunchScreen.storyboard`; launch images are properly scaled 1x/2x/3x.
+- No stray `android/` or `ios/` folders are created in projects that do not have them.
+- Non-square, palette, grayscale and 16-bit master images are normalized instead of being stretched or mis-rendered.
+- Play Store banner: font size adapts to long names and taglines; non-ASCII text no longer renders as gaps.
+
+### Changed
+- Upgrading: if `launcher_icon` is set, macOS, Web, Windows and Linux icons are now generated and overwritten too (when those folders exist). Commit before running.
+- Internal code reorganized into `renamers/`, `icons/`, `splash/`, `marketing/` and `utils/`.
 
 ---
 
@@ -30,7 +54,7 @@
 - **Adaptive Icon Image Backgrounds:** Added `launcher_icon_bg_image` property to allow custom image textures for Android adaptive backgrounds instead of solid hex colors.
 - **Round Icon Generation:** Generates `ic_launcher_round.xml` and legacy round mipmap variants for OEM launchers that enforce circular icons.
 - **Native Desktop & Web Metadata:**
-  - Windows: Updates `Runner.rc` (`FileDescription`, `ProductName`, `InternalName`) and window title in `main.cpp`.
+  - Windows: Updates `Runner.rc` (`FileDescription`, `ProductName`) and window title in `main.cpp`.
   - Linux: Updates both standard window title and GTK HeaderBar title in `linux/runner/my_application.cc`.
   - macOS: Updates `PRODUCT_NAME` and `PRODUCT_BUNDLE_IDENTIFIER` in `AppInfo.xcconfig`.
   - Web: Updates `<title>` and mobile meta tags in `index.html`, and `name` / `short_name` in `manifest.json`.
@@ -58,5 +82,3 @@
 - Launcher icons for Android & iOS.
 - Native splash screen wiring for Android 12+ Splash API, Android <12, and iOS Storyboards.
 - Monochrome notification silhouette generator with automatic luminance inversion.
-- Google Play Store marketing kit (512×512 solid icon + 1024×500 feature graphic banner).
-- Standalone `rebrand_kit.yaml` configuration support.

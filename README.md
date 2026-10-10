@@ -3,210 +3,139 @@
 [![Pub Version](https://img.shields.io/pub/v/flutter_rebrand_kit)](https://pub.dev/packages/flutter_rebrand_kit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-An all-in-one developer CLI tool to rebrand Flutter applications. Update app names, package identifiers, bump versions, generate adaptive launcher icons, convert notification silhouettes, wire native splash screens, and export Google Play Store marketing assets using a single command.
+A single-command CLI to rebrand Flutter apps: app name, package/bundle ID, version, launcher icons for all six platforms, Android notification icons, native splash screens and Google Play graphics. Pure Dart, no other CLI tools are invoked.
+
+> ⚠️ **Commit or stash your work first.** The tool edits native files (Android, iOS, macOS, Windows, Linux, Web) and moves Kotlin/Java source folders in place. There is no dry-run or rollback yet (planned for 1.4.0), so review the diff after every run.
 
 ---
 
-## Architecture: Standalone Native Engine
+## What it does
 
-Flutter Rebrand Kit is engineered from the ground up as an independent, single-pass Dart CLI tool. It operates entirely as a self-contained engine and does not execute, wrap, or invoke other third-party CLI packages under the hood:
+| Area                    | What happens                                                                                                                                                                                                                                                            |
+|:------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **App name**            | Android `<application>` label, iOS `Info.plist`, macOS `PRODUCT_NAME`, Web `index.html` + `manifest.json`, Windows window title + `Runner.rc`, Linux GTK titles. Names are escaped for each file format (`&`, quotes, `<`, non-ASCII).                                  |
+| **Package / bundle ID** | Gradle (Groovy & Kotlin DSL), Android manifests, iOS/macOS Xcode projects, macOS `AppInfo.xcconfig`, Windows binary name, Linux `APPLICATION_ID`. Kotlin/Java sources are moved to the new package and `package`/`import` lines are rewritten. IDs are validated first. |
+| **Version**             | Updates `version:` in `pubspec.yaml` (`x.y.z` or `x.y.z+build`). Flutter propagates it to the platforms at build time.                                                                                                                                                  |
+| **Launcher icons**      | Android (legacy, circular round, adaptive, Android 13+ monochrome), iOS (full iPhone/iPad catalog + iOS 18 Dark & Tinted), macOS, Web (favicon, PWA, maskable), Windows (`.ico`), Linux (PNG). Platforms whose folder is missing are skipped.                           |
+| **Notification icons**  | Android white silhouettes (24–96 px) with a custom drawable name.                                                                                                                                                                                                       |
+| **Native splash**       | Android (density assets, `drawable` + `drawable-v21`, Android 12+ `values-v31`), iOS (`LaunchImage` + storyboard background color).                                                                                                                                     |
+| **Play Store assets**   | 512×512 icon and 1024×500 feature graphic.                                                                                                                                                                                                                              |
 
-- **Direct Native Operations:** Modifies native platform manifests, build scripts, resource catalogs, and source folders directly without spawning external package sub-processes.
-- **In-Memory Image Pipeline:** Loads and decodes master graphic assets in memory once, processing all target resolutions, density variants, and platform formats in a single execution.
-- **Zero Workspace Clutter:** Operates strictly through standard configuration files (`rebrand_kit.yaml` or embedded directly within `pubspec.yaml`) without injecting temporary packages or build scripts into your project.
+## Platform support
 
----
-
-## What This Tool Does
-
-- ✓ **App Name:** Updates application titles across Android, iOS, macOS, Web, Windows, and Linux.
-- ✓ **Package ID:** Updates bundle identifiers across Gradle (Groovy & Kotlin DSL), Xcode, and CMake build targets.
-- ✓ **Source Code Migration:** Physically relocates Kotlin and Java folder trees to match new package identifiers while updating package declarations and internal imports.
-- ✓ **Launcher Icons:** Generates complete launcher icon sets across all 6 platforms (Android, iOS, macOS, Web, Windows, and Linux).
-- ✓ **Themed & Dark Icons:** Generates Android 13+ Material You monochrome silhouettes and iOS 18 Dark & Tinted icons.
-- ✓ **Notification Icons:** Generates anti-aliased white silhouettes with full-canvas resolution, custom drawable naming, and automatic stale asset cleanup.
-- ✓ **Native Splash Screen:** Wires Android 12+ Splash API, Android legacy drawables, and iOS Storyboards with safe margin bounds.
-- ✓ **Store Marketing Assets:** Exports a compliant 512×512 Google Play icon and a 1024×500 feature graphic banner with custom typography and taglines.
-
----
-
-## Platform Support
-
-| Feature                      |             Android             |            iOS            |       macOS       |         Web         |      Windows      |       Linux       |
-|:-----------------------------|:-------------------------------:|:-------------------------:|:-----------------:|:-------------------:|:-----------------:|:-----------------:|
-| **App Name**                 |                ✓                |             ✓             |         ✓         |          ✓          |         ✓         |         ✓         |
-| **Package / Bundle ID**      |      ✓ *(Tree Migration)*       |             ✓             |         ✓         |         N/A         | ✓ *(Binary Name)* |   ✓ *(App ID)*    |
-| **Version & Build**          |                ✓                |             ✓             |         ✓         |          ✓          |         ✓         |         ✓         |
-| **Launcher Icons**           | ✓ *(Adaptive + Themed + Round)* | ✓ *(Light, Dark, Tinted)* | ✓ *(.appiconset)* | ✓ *(Favicon + PWA)* | ✓ *(Binary .ico)* | ✓ *(Desktop PNG)* |
-| **Notification Icons**       | ✓ *(Custom Name + Silhouettes)* |            N/A            |        N/A        |         N/A         |        N/A        |        N/A        |
-| **Native Splash Screen**     |     ✓ *(API 31+ & Legacy)*      |  ✓ *(Storyboard Asset)*   |        N/A        |      ⏳ Planned      |        N/A        |        N/A        |
-| **Play Store Marketing Kit** |      ✓ *(512px & Banner)*       |            N/A            |        N/A        |         N/A         |        N/A        |        N/A        |
+| Feature             |            Android            |            iOS            | macOS |             Web              |      Windows      |         Linux         |
+|:--------------------|:-----------------------------:|:-------------------------:|:-----:|:----------------------------:|:-----------------:|:---------------------:|
+| App name            |               ✓               |             ✓             |   ✓   |              ✓               |         ✓         |           ✓           |
+| Package / bundle ID |   ✓ *(+ source migration)*    |             ✓             |   ✓   |             N/A              | ✓ *(binary name)* |     ✓ *(app ID)*      |
+| Version             |               ✓               |             ✓             |   ✓   |              ✓               |         ✓         |           ✓           |
+| Launcher icons      | ✓ *(adaptive, round, themed)* | ✓ *(light, dark, tinted)* |   ✓   | ✓ *(favicon, PWA, maskable)* |    ✓ *(.ico)*     | ✓ *(PNG, see limits)* |
+| Notification icons  |               ✓               |            N/A            |  N/A  |             N/A              |        N/A        |          N/A          |
+| Native splash       |               ✓               |             ✓             |  N/A  |          ⏳ Planned           |        N/A        |          N/A          |
+| Play Store graphics |               ✓               |            N/A            |  N/A  |             N/A              |        N/A        |          N/A          |
 
 ---
 
-## Addressed Edge Cases & Platform Considerations
-
-This tool addresses several real-world edge cases and native platform requirements encountered during project rebranding:
-
-- **Complete Android Source Tree Migration:** Rather than only updating configuration strings in Gradle and Manifest files, the tool physically migrates your Kotlin and Java directory hierarchy, rewrites package headers, updates internal imports across sub-packages, and prunes orphaned directories.
-- **Engine File Protection:** Explicitly identifies and preserves internal engine-generated files (such as `GeneratedPluginRegistrant.java`) to prevent compilation failures.
-- **Full 6-Platform Launcher Icons:** Generates icons for Android, iOS, macOS, Web, Windows, and Linux, including platforms frequently omitted by traditional generators (such as Linux desktop launchers).
-- **Built-In Windows Binary `.ico` Encoder:** Contains an internal multi-resolution binary encoder that stitches `16×16`, `32×32`, `48×48`, and `256×256` frames directly into `windows/runner/resources/app_icon.ico` using a pure-Dart binary packer without requiring external C libraries.
-- **Full iOS Asset Coverage:** Generates all 20 standard iOS asset sizes (including legacy `@1x` slots: `20@1x`, `29@1x`, `40@1x`, and `76@1x`), ensuring icons render consistently in iPad search and the iOS App Switcher.
-- **iOS 18 Dark & Tinted Variants:** Supports Xcode 16 / iOS 18 Dark Mode and Tinted home screen icons across all resolution variants with proper luminosity appearance tags.
-- **Store-Compliant Alpha Management:** Automatically composites transparent source PNGs over solid backgrounds for Apple App Store and Google Play exports, preventing automated submission rejections.
-- **Desktop Executable Metadata:** Updates Windows executable metadata (`FileDescription`, `ProductName`, `InternalName` in `Runner.rc`) and Linux GTK HeaderBar titles alongside primary window titles.
-- **High-Fidelity Notification Rendering:** Avoids stroke loss on delicate line art by rendering to full canvas dimensions (`24` to `96px`), preserving anti-aliased subpixels, and supporting custom drawable names (`notification_icon_name`) while cleaning up stale default assets.
-- **XML Entity & UTF-8 Encoding Safety:** Enforces UTF-8 across all file operations and automatically escapes XML entities (`&amp;`) for `AndroidManifest.xml` to avoid AAPT build errors.
-- **iOS Extension Target Isolation:** Identifies extension and test targets in `project.pbxproj`, preserving distinct sub-identifiers to prevent code-signing issues.
-
----
-
-## Quick Start
-
-### 1. Installation
-Add `flutter_rebrand_kit` to your `dev_dependencies`:
+## Quick start
 
 ```bash
 flutter pub add -d flutter_rebrand_kit
+dart run flutter_rebrand_kit:rebrand_kit init   # creates rebrand_kit.yaml (or: dart run flutter_rebrand_kit:init)
+# edit rebrand_kit.yaml, then:
+dart run flutter_rebrand_kit:rebrand_kit
 ```
 
-### 2. Scaffold Configuration
-Generate a starter configuration file in your project root:
+The command exits with a non-zero code when something fails, so it can be used in scripts and CI.
 
-```bash
-dart run flutter_rebrand_kit:init
-```
+### Configuration
 
-### 3. Configure
-Configure your properties using either a standalone file or directly within `pubspec.yaml`. All fields are optional.
-
-#### Option A: Standalone File (Recommended)
-Create or edit `rebrand_kit.yaml` in your project root:
+Use **either** `rebrand_kit.yaml` in the project root (checked first) **or** a `rebrand_kit:` block in `pubspec.yaml`. Every field is optional.
 
 ```yaml
-# ==============================================================================
-# FLUTTER REBRAND KIT CONFIGURATION (rebrand_kit.yaml)
-# ==============================================================================
-
-# 1. Identity (Android, iOS, macOS, Web, Windows, Linux)
 app_name: "My Awesome App"
 package_id: "com.company.awesomeapp"
-version: "1.0.0+1"
+version: "1.2.0+15"
 
-# 2. Launcher Icons (1024x1024 Transparent PNG recommended)
-launcher_icon: "assets/branding/app_logo_1024.png"
+launcher_icon: "assets/branding/app_logo_1024.png"   # 1024x1024 transparent PNG recommended
 launcher_icon_bg_color: "#FFFFFF"
-# Optional: Use an image background instead of a solid color
 # launcher_icon_bg_image: "assets/branding/adaptive_bg.png"
-# Optional: Custom monochrome silhouette for Android 13+ (auto-derived if omitted)
 # launcher_icon_monochrome: "assets/branding/custom_mono.png"
 
-# 3. Android Notification Silhouette
-notification_icon: "assets/branding/app_logo_1024.png"
-notification_icon_name: "ic_stat_notification" # Optional (defaults to "ic_notification")
+notification_icon: "assets/branding/app_logo_1024.png"   # transparent PNG
+notification_icon_name: "ic_stat_notification"           # default: ic_notification
 
-# 4. Native Splash Screen
 splash_image: "assets/branding/app_logo_1024.png"
 splash_color: "#1E1E2E"
 
-# 5. Play Store Marketing Assets
 play_store:
-  generate: true
+  generate: true            # requires launcher_icon
   background_color: "#1E1E2E"
   tagline: "Build better and ship faster"
 ```
 
-#### Option B: Embedded in `pubspec.yaml`
-Add the `rebrand_kit:` block at the bottom of your `pubspec.yaml`:
+| Property                      | Default           | Description                                                                                                          |
+|:------------------------------|:------------------|:---------------------------------------------------------------------------------------------------------------------|
+| `app_name`                    | –                 | Display name on all platforms.                                                                                       |
+| `package_id`                  | –                 | Application/bundle ID. At least two dot-separated segments; letters, digits, `_`; each segment starts with a letter. |
+| `version`                     | –                 | `x.y.z` or `x.y.z+build`, written to `pubspec.yaml`.                                                                 |
+| `launcher_icon`               | –                 | Master logo used for all platforms. Non-square images are centered on a transparent square (never stretched).        |
+| `launcher_icon_bg_color`      | `#FFFFFF`         | Background for Android icons, iOS/macOS/Web/Linux icons and Play Store. `#RGB` or `#RRGGBB`.                         |
+| `launcher_icon_bg_image`      | –                 | Image background instead of a color.                                                                                 |
+| `launcher_icon_monochrome`    | –                 | Custom Android 13+ silhouette (derived from the logo when omitted).                                                  |
+| `notification_icon`           | –                 | Source for the white status-bar silhouette.                                                                          |
+| `notification_icon_name`      | `ic_notification` | Lowercase letters, digits, `_`. When not the default, a leftover `ic_notification.png` is deleted.                   |
+| `splash_image`                | –                 | Splash logo.                                                                                                         |
+| `splash_color`                | `#FFFFFF`         | Splash background (Android and iOS).                                                                                 |
+| `play_store.generate`         | `false`           | Writes to `branding_assets/play_store/`.                                                                             |
+| `play_store.background_color` | `#1E1E2E`         | Canvas color of the store icon and banner.                                                                           |
+| `play_store.tagline`          | –                 | Subtitle on the banner (basic ASCII only).                                                                           |
 
-```yaml
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_rebrand_kit: ^1.2.0
+## Master image tips
 
-rebrand_kit:
-  app_name: "My Awesome App"
-  package_id: "com.company.awesomeapp"
-  version: "1.0.0+1"
-  launcher_icon: "assets/branding/app_logo_1024.png"
-  launcher_icon_bg_color: "#FFFFFF"
-  notification_icon: "assets/branding/app_logo_1024.png"
-  notification_icon_name: "ic_stat_notification"
-  splash_image: "assets/branding/app_logo_1024.png"
-  splash_color: "#1E1E2E"
-  play_store:
-    generate: true
-    background_color: "#1E1E2E"
-    tagline: "Build better and ship faster"
-```
+- Use a **1024×1024 PNG with a transparent background**. A different size works but triggers a warning.
+- iOS icons (light and dark) are written **without an alpha channel**, as the App Store requires.
+- Android 13+ themed icons and notification icons are built from the logo's alpha channel. An opaque logo produces a solid white square, so the tool warns you. Provide `launcher_icon_monochrome` or a transparent PNG.
 
-### 4. Execute
-Run the rebranding pipeline:
+## Generated files
 
-```bash
-dart run flutter_rebrand_kit:rebrand_kit
-```
+| Asset                           | Location                                                                                                                                                           |
+|:--------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Android legacy + round icons    | `android/app/src/main/res/mipmap-*/ic_launcher.png`, `ic_launcher_round.png`                                                                                       |
+| Android adaptive / themed icons | `mipmap-anydpi-v26/ic_launcher.xml`, `ic_launcher_round.xml`, `mipmap-*/ic_launcher_foreground.png`, `ic_launcher_monochrome.png`                                  |
+| Android manifest                | `android:icon` and `android:roundIcon` are added to `<application>` only when missing                                                                              |
+| iOS icons                       | `ios/Runner/Assets.xcassets/AppIcon.appiconset/` (standard iPhone/iPad set, `Icon-App-Dark-1024x1024@1x.png`, `Icon-App-Tinted-1024x1024@1x.png`, `Contents.json`) |
+| macOS icons                     | `macos/Runner/Assets.xcassets/AppIcon.appiconset/` (16–1024 px)                                                                                                    |
+| Windows icon                    | `windows/runner/resources/app_icon.ico` (16, 32, 48, 256 px, transparent)                                                                                          |
+| Linux icon                      | `linux/runner/assets/app_icon.png` (256×256)                                                                                                                       |
+| Web icons                       | `web/favicon.png`, `web/icons/Icon-192.png`, `Icon-512.png`, `Icon-maskable-192.png`, `Icon-maskable-512.png`                                                      |
+| Notification icons              | `android/app/src/main/res/drawable-*/<icon_name>.png`                                                                                                              |
+| Android splash                  | `drawable-{mdpi..xxxhdpi}/splash_logo.png`, `drawable/launch_background.xml`, `drawable-v21/launch_background.xml`, `values/colors.xml`, `values-v31/styles.xml`   |
+| iOS splash                      | `ios/Runner/Assets.xcassets/LaunchImage.imageset/`, background color in `Base.lproj/LaunchScreen.storyboard`                                                       |
+| Play Store                      | `branding_assets/play_store/play_store_512.png`, `feature_graphic_1024x500.png`                                                                                    |
 
-#### Configuration Priority:
-1. **`rebrand_kit.yaml`:** Checked first. If present, it will be used.
-2. **`pubspec.yaml`:** Used if `rebrand_kit.yaml` is not found.
+## Behavior worth knowing
 
----
-
-## Master Image Guidelines
-
-> **Recommendation:** Provide a **1024×1024 PNG with a transparent background**.
-
-* **Adaptive Icons & Splash:** The tool centers the transparent logo within safe boundaries over your configured background color (`launcher_icon_bg_color` or `splash_color`), preventing Android 12+ circular crop clipping.
-* **Notification Silhouettes:** The alpha channel is used to generate clean white silhouettes (`#FFFFFF`) for Android status bars.
-* **Store Compliance:** Google Play and Apple App Store require opaque app icons. The tool automatically composites transparent assets onto solid canvases to ensure store submission requirements are met.
-
----
-
-## Configuration Reference
-
-| Property                      | Type           | Required | Default             | Description                                                                            |
-|:------------------------------|:---------------|:--------:|:--------------------|:---------------------------------------------------------------------------------------|
-| `app_name`                    | `String`       |    No    | `null`              | Display name across Android, iOS, macOS, Web, Windows, and Linux.                      |
-| `package_id`                  | `String`       |    No    | `null`              | Application/Bundle ID. Updates build files and migrates Kotlin/Java folders.           |
-| `version`                     | `String`       |    No    | `null`              | Version and build number in `pubspec.yaml` (`x.y.z+build`).                            |
-| `launcher_icon`               | `String`       |    No    | `null`              | Master logo (**1024×1024 transparent PNG**). Exports icons across all 6 platforms.     |
-| `launcher_icon_bg_color`      | `String (Hex)` |    No    | `"#FFFFFF"`         | Background color for Android adaptive icons and fallback canvases.                     |
-| `launcher_icon_bg_image`      | `String`       |    No    | `null`              | Background image for Android adaptive icons (overrides `launcher_icon_bg_color`).      |
-| `launcher_icon_monochrome`    | `String`       |    No    | `null`              | Custom silhouette for Android 13+ theming (auto-generated from logo if omitted).       |
-| `notification_icon`           | `String`       |    No    | `null`              | Source logo. Auto-converts to an anti-aliased white silhouette (`drawable-*`).         |
-| `notification_icon_name`      | `String`       |    No    | `"ic_notification"` | Custom output filename for Android notification drawables. Auto-cleans stale defaults. |
-| `splash_image`                | `String`       |    No    | `null`              | Splash logo. Padded to safe boundaries to prevent circular crop issues.                |
-| `splash_color`                | `String (Hex)` |    No    | `"#FFFFFF"`         | Background color for native splash screens on Android and iOS.                         |
-| `play_store.generate`         | `bool`         |    No    | `false`             | Enables generating assets in `branding_assets/play_store/`.                            |
-| `play_store.background_color` | `String (Hex)` |    No    | `"#1E1E2E"`         | Canvas color for the 512×512 store icon and 1024×500 feature graphic.                  |
-| `play_store.tagline`          | `String`       |    No    | `null`              | Subtitle printed on the 1024×500 feature graphic banner.                               |
+- **Existing files are edited, not replaced, where possible:** `colors.xml` entries are updated in place, `values-v31/styles.xml` is merged into an existing `LaunchTheme`, `<application>` icon attributes are only added when absent, iOS/macOS test targets and app extensions keep their bundle-ID suffix (`.RunnerTests`, `.ShareExtension`, …).
+- **Package IDs:** only the first `applicationId` and `namespace` assignment in Gradle is rewritten (the `defaultConfig` one), so product flavors keep their own IDs. Sources under `io/flutter` (engine files) and code from unrelated packages are left alone.
+- **Re-running is safe:** running the tool twice with the same configuration produces the same result.
+- **Missing platforms are skipped:** no `ios/` folder means no iOS files are created.
 
 ---
 
-## Generated File Destinations
+## Known limitations (v1.2.0)
 
-| Asset                                   | Output Location                                                                       |
-|:----------------------------------------|:--------------------------------------------------------------------------------------|
-| **Android Legacy Icons**                | `android/app/src/main/res/mipmap-*/ic_launcher.png`, `ic_launcher_round.png`          |
-| **Android Adaptive Icons**              | `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`, `ic_launcher_round.xml` |
-| **Android 13+ Themed Icons**            | `android/app/src/main/res/mipmap-*/ic_launcher_monochrome.png`                        |
-| **iOS App Icons (Light, Dark, Tinted)** | `ios/Runner/Assets.xcassets/AppIcon.appiconset/` *(Full catalog + Contents.json)*     |
-| **macOS Desktop Icons**                 | `macos/Runner/Assets.xcassets/AppIcon.appiconset/` *(16px to 1024px)*                 |
-| **Windows Application Icon**            | `windows/runner/resources/app_icon.ico` *(16, 32, 48, 256px multi-resolution)*        |
-| **Linux Desktop Icon**                  | `linux/runner/assets/app_icon.png` *(256×256)*                                        |
-| **Web Favicon & PWA Icons**             | `web/favicon.png`, `web/icons/Icon-*.png`, `web/icons/Icon-maskable-*.png`            |
-| **Android Notification Icons**          | `android/app/src/main/res/drawable-*/<icon_name>.png`                                 |
-| **Android Splash (<12)**                | `android/app/src/main/res/drawable/launch_background.xml`                             |
-| **Android Splash (12+)**                | `android/app/src/main/res/values-v31/styles.xml`                                      |
-| **iOS Launch Screen**                   | `ios/Runner/Assets.xcassets/LaunchImage.imageset/`                                    |
-| **Play Store Icon (512×512)**           | `branding_assets/play_store/play_store_512.png`                                       |
-| **Feature Banner (1024×500)**           | `branding_assets/play_store/feature_graphic_1024x500.png`                             |
+- **No dry-run or rollback yet.** Commit before running. (Planned for 1.4.0.)
+- **Flavors:** no per-flavor names, IDs or icons. Flavor-specific `applicationId` values are left untouched. (Planned.)
+- **One master image for all platforms.** iOS Dark and Tinted icons are generated automatically (Dark: the logo on `#1A1A1A`, Tinted: a grayscale copy of the light icon). Per-platform and custom Dark/Tinted images are planned.
+- **Splash:** no Web splash and no dark-mode splash yet. (Planned.)
+- **Localized app names** (`strings.xml` translations, `InfoPlist.strings`) and Windows `CompanyName` / `LegalCopyright` are not changed.
+
+### Good to know
+
+- **Linux:** the icon is exported to `linux/runner/assets/app_icon.png`, but the default runner does not load it. Add `gtk_window_set_icon_from_file` in `my_application.cc` if you want it as the window icon.
+- **After changing the package ID,** also update anything tied to the old ID: Firebase config files, signing configs, deep links and intent filters, and ProGuard rules.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT, see [LICENSE](LICENSE).

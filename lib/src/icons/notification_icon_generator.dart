@@ -1,21 +1,38 @@
 import 'dart:io';
+
 import 'package:image/image.dart' as img;
+import 'package:path/path.dart' as p;
+
 import '../utils/image_utils.dart';
+import '../utils/logger.dart';
+import '../utils/validators.dart';
 
 /// Generator for Android status bar monochrome notification icons.
 class NotificationIconGenerator {
   NotificationIconGenerator._();
 
   /// Generates anti-aliased white silhouettes matching Android notification specifications.
-  static void generate({
+  ///
+  /// Returns false (and writes nothing) when the project has no `android/`
+  /// folder.
+  static bool generate({
     required String iconPath,
     String iconName = 'ic_notification',
   }) {
-    var image = ImageUtils.loadAndValidateIcon(iconPath);
-    final cleanIconName = iconName.replaceAll('.png', '');
+    final cleanIconName = Validators.resourceName(iconName);
+    final image = ImageUtils.loadAndValidateIcon(iconPath);
 
-    if (image.numChannels < 4 || image.hasPalette) {
-      image = image.convert(numChannels: 4);
+    if (!Directory('android').existsSync()) {
+      Logger.warn('No android/ folder found; skipping notification icons.');
+      return false;
+    }
+
+    if (!ImageUtils.hasTransparency(image)) {
+      Logger.warn(
+        'The notification icon ($iconPath) has no transparency, so the '
+        'status bar icon will be a solid white square. Use a PNG with a '
+        'transparent background.',
+      );
     }
 
     final densities = {
@@ -38,20 +55,22 @@ class NotificationIconGenerator {
 
       for (int y = 0; y < scaled.height; y++) {
         for (int x = 0; x < scaled.width; x++) {
-          final p = scaled.getPixel(x, y);
-          if (p.a > 0) {
-            scaled.setPixelRgba(x, y, 255, 255, 255, p.a);
+          final pixel = scaled.getPixel(x, y);
+          if (pixel.a > 0) {
+            scaled.setPixelRgba(x, y, 255, 255, 255, pixel.a);
           }
         }
       }
 
-      final dir = Directory('android/app/src/main/res/${entry.key}');
+      final dir = Directory(
+        p.join('android', 'app', 'src', 'main', 'res', entry.key),
+      );
       if (!dir.existsSync()) {
         dir.createSync(recursive: true);
       }
 
       if (cleanIconName != 'ic_notification') {
-        final oldDefaultFile = File('${dir.path}/ic_notification.png');
+        final oldDefaultFile = File(p.join(dir.path, 'ic_notification.png'));
         if (oldDefaultFile.existsSync()) {
           try {
             oldDefaultFile.deleteSync();
@@ -60,8 +79,10 @@ class NotificationIconGenerator {
       }
 
       File(
-        '${dir.path}/$cleanIconName.png',
+        p.join(dir.path, '$cleanIconName.png'),
       ).writeAsBytesSync(img.encodePng(scaled));
     }
+
+    return true;
   }
 }

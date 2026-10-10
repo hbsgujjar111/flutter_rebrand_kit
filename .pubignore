@@ -1,0 +1,26 @@
+# .pubignore replaces .gitignore for `dart pub publish`, so the git patterns are repeated here.
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+*.iml
+*.ipr
+*.iws
+.idea/
+/pubspec.lock
+**/doc/api/
+.dart_tool/
+.flutter-plugins-dependencies
+/build/
+/coverage/
+
+# Project-context files for contributors/AI assistants; not part of the package.
+AI_CONTEXT.md
+SESSION_STATE.md
+TESTING.md

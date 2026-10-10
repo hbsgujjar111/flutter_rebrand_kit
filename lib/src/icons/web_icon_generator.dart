@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:image/image.dart' as img;
 
 /// Generator for Web favicons and standard PWA icon sets.

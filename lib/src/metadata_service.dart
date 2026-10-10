@@ -5,6 +5,7 @@ import 'renamers/macos_renamer.dart';
 import 'renamers/version_renamer.dart';
 import 'renamers/web_renamer.dart';
 import 'renamers/windows_renamer.dart';
+import 'utils/validators.dart';
 
 /// Orchestrator service for updating manifest files, package IDs, and app labels.
 class MetadataService {
@@ -26,7 +27,11 @@ class MetadataService {
   }
 
   /// Updates package ID / bundle ID across all platforms.
+  ///
+  /// Throws before touching any file when [newId] is not a valid ID.
   static void updatePackageId(String newId) {
+    Validators.packageId(newId);
+
     AndroidRenamer.updatePackageId(newId);
     IosRenamer.updatePackageId(newId);
     MacOsRenamer.updatePackageId(newId);

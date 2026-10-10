@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:yaml/yaml.dart';
 
 /// Configuration options for Flutter Rebrand Kit.
@@ -52,13 +53,14 @@ class RebrandConfig {
       yamlMap = pubspec['rebrand_kit'] ?? pubspec['flutter_rebrand_kit'];
     }
 
-    if (yamlMap == null) {
+    if (yamlMap is! YamlMap) {
       throw Exception(
         'No configuration found in "rebrand_kit.yaml" or "pubspec.yaml".',
       );
     }
 
-    final playStore = yamlMap['play_store'] as YamlMap?;
+    final playStoreNode = yamlMap['play_store'];
+    final playStore = playStoreNode is YamlMap ? playStoreNode : null;
 
     return RebrandConfig(
       appName: yamlMap['app_name']?.toString(),

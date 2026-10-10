@@ -1,11 +1,17 @@
-import 'dart:convert';
 import 'dart:io';
+
 import 'package:image/image.dart' as img;
+import 'package:path/path.dart' as p;
+
+import '../utils/android_resources.dart';
 import '../utils/image_utils.dart';
+import '../utils/logger.dart';
 
 /// Generator for Android legacy mipmaps, adaptive icons, and Android 13+ monochrome icons.
 class AndroidIconGenerator {
   AndroidIconGenerator._();
+
+  static final String _resDir = p.join('android', 'app', 'src', 'main', 'res');
 
   /// Generates all Android icon layers and XML definitions.
   static void generate({
@@ -15,7 +21,15 @@ class AndroidIconGenerator {
     img.Image? bgImage,
     img.Image? customMonochrome,
   }) {
-    // 1. Legacy Mipmaps
+    if (customMonochrome == null && !ImageUtils.hasTransparency(baseImage)) {
+      Logger.warn(
+        'The launcher icon has no transparency, so the Android 13+ themed '
+        '(monochrome) icon will be a solid white square. Use a transparent '
+        'PNG or set "launcher_icon_monochrome".',
+      );
+    }
+
+    // 1. Legacy Mipmaps (square + circular)
     final androidDensities = {
       'mipmap-mdpi': 48,
       'mipmap-hdpi': 72,
@@ -53,16 +67,16 @@ class AndroidIconGenerator {
         dstY: ((entry.value - iconSize) / 2).round(),
       );
 
-      final dir = Directory('android/app/src/main/res/${entry.key}');
+      final dir = Directory(p.join(_resDir, entry.key));
       if (!dir.existsSync()) {
         dir.createSync(recursive: true);
       }
       File(
-        '${dir.path}/ic_launcher.png',
+        p.join(dir.path, 'ic_launcher.png'),
       ).writeAsBytesSync(img.encodePng(canvas));
       File(
-        '${dir.path}/ic_launcher_round.png',
-      ).writeAsBytesSync(img.encodePng(canvas));
+        p.join(dir.path, 'ic_launcher_round.png'),
+      ).writeAsBytesSync(img.encodePng(ImageUtils.circularMask(canvas)));
     }
 
     // 2. Adaptive and Themed Icons
@@ -77,7 +91,7 @@ class AndroidIconGenerator {
     for (final entry in adaptiveDensities.entries) {
       final canvasSize = entry.value;
       final safeSize = (canvasSize * 0.60).round();
-      final dir = Directory('android/app/src/main/res/${entry.key}');
+      final dir = Directory(p.join(_resDir, entry.key));
       if (!dir.existsSync()) {
         dir.createSync(recursive: true);
       }
@@ -100,7 +114,7 @@ class AndroidIconGenerator {
         dstY: ((canvasSize - safeSize) / 2).round(),
       );
       File(
-        '${dir.path}/ic_launcher_foreground.png',
+        p.join(dir.path, 'ic_launcher_foreground.png'),
       ).writeAsBytesSync(img.encodePng(fgCanvas));
 
       if (bgImage != null) {
@@ -110,7 +124,7 @@ class AndroidIconGenerator {
           height: canvasSize,
         );
         File(
-          '${dir.path}/ic_launcher_background.png',
+          p.join(dir.path, 'ic_launcher_background.png'),
         ).writeAsBytesSync(img.encodePng(resizedBg));
       }
 
@@ -135,30 +149,20 @@ class AndroidIconGenerator {
         dstY: ((canvasSize - safeSize) / 2).round(),
       );
       File(
-        '${dir.path}/ic_launcher_monochrome.png',
+        p.join(dir.path, 'ic_launcher_monochrome.png'),
       ).writeAsBytesSync(img.encodePng(monoCanvas));
     }
 
+    // 3. Adaptive background color (updated on every run, other colors kept).
     if (bgImage == null) {
-      final valuesDir = Directory('android/app/src/main/res/values');
-      if (!valuesDir.existsSync()) {
-        valuesDir.createSync(recursive: true);
-      }
-
-      final colorsFile = File('${valuesDir.path}/colors.xml');
-      var colorsContent = colorsFile.existsSync()
-          ? colorsFile.readAsStringSync(encoding: utf8)
-          : '<resources></resources>';
-      if (!colorsContent.contains('ic_launcher_background')) {
-        colorsContent = colorsContent.replaceFirst(
-          '</resources>',
-          '    <color name="ic_launcher_background">$bgColorHex</color>\n</resources>',
-        );
-        colorsFile.writeAsStringSync(colorsContent, encoding: utf8);
-      }
+      AndroidResources.setColor(
+        'ic_launcher_background',
+        ImageUtils.normalizeHex(bgColorHex),
+      );
     }
 
-    final anyDpiDir = Directory('android/app/src/main/res/mipmap-anydpi-v26');
+    // 4. Adaptive XML definitions
+    final anyDpiDir = Directory(p.join(_resDir, 'mipmap-anydpi-v26'));
     if (!anyDpiDir.existsSync()) {
       anyDpiDir.createSync(recursive: true);
     }
@@ -175,10 +179,13 @@ class AndroidIconGenerator {
 </adaptive-icon>''';
 
     File(
-      '${anyDpiDir.path}/ic_launcher.xml',
-    ).writeAsStringSync(adaptiveXmlContent, encoding: utf8);
+      p.join(anyDpiDir.path, 'ic_launcher.xml'),
+    ).writeAsStringSync(adaptiveXmlContent);
     File(
-      '${anyDpiDir.path}/ic_launcher_round.xml',
-    ).writeAsStringSync(adaptiveXmlContent, encoding: utf8);
+      p.join(anyDpiDir.path, 'ic_launcher_round.xml'),
+    ).writeAsStringSync(adaptiveXmlContent);
+
+    // 5. Make sure the manifest actually uses the generated icons.
+    AndroidResources.ensureLauncherIconReferences();
   }
 }
