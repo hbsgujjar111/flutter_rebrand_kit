@@ -5,6 +5,7 @@ import 'package:flutter_rebrand_kit/src/config/init_service.dart';
 import 'package:flutter_rebrand_kit/src/image_service.dart';
 import 'package:flutter_rebrand_kit/src/metadata_service.dart';
 import 'package:flutter_rebrand_kit/src/splash/splash_service.dart';
+import 'package:flutter_rebrand_kit/src/utils/image_utils.dart';
 import 'package:flutter_rebrand_kit/src/utils/logger.dart';
 import 'package:flutter_rebrand_kit/src/utils/validators.dart';
 
@@ -26,6 +27,12 @@ void main(List<String> args) {
     // Validate everything that can be validated before any file is modified.
     if (config.packageId != null) Validators.packageId(config.packageId!);
     if (config.version != null) Validators.version(config.version!);
+    if (config.splashImage != null) {
+      ImageUtils.normalizeHex(config.splashColor);
+      if (config.splashDarkColor != null) {
+        ImageUtils.normalizeHex(config.splashDarkColor!);
+      }
+    }
 
     // 1. App Name
     if (config.appName != null) {
@@ -74,6 +81,16 @@ void main(List<String> args) {
           'Launcher Icons',
           'Generated for ${platforms.join(', ')}',
         );
+        Logger.subStep(
+          config.launcherIconBgImage != null
+              ? 'Background image: ${config.launcherIconBgImage}'
+              : 'Background color: ${config.launcherIconBgColor}',
+        );
+        if (config.launcherIconMonochrome != null) {
+          Logger.subStep(
+            'Custom monochrome icon: ${config.launcherIconMonochrome}',
+          );
+        }
       }
     } else {
       Logger.step(4, totalSteps, 'Launcher Icons', 'Skipped');
@@ -102,6 +119,10 @@ void main(List<String> args) {
       final platforms = SplashService.generateNativeSplash(
         config.splashImage!,
         config.splashColor,
+        darkImagePath: config.splashDarkImage,
+        darkHexColor: config.splashDarkColor,
+        brandingImagePath: config.splashBrandingImage,
+        brandingDarkImagePath: config.splashBrandingDarkImage,
       );
       Logger.step(
         6,
@@ -111,6 +132,14 @@ void main(List<String> args) {
             ? 'Skipped (no platforms)'
             : 'Generated for ${platforms.join(', ')} (${config.splashColor})',
       );
+      if (platforms.isNotEmpty) {
+        if (config.splashDarkImage != null || config.splashDarkColor != null) {
+          Logger.subStep('Dark mode variant included');
+        }
+        if (config.splashBrandingImage != null) {
+          Logger.subStep('Branding image included');
+        }
+      }
     } else {
       Logger.step(6, totalSteps, 'Native Splash', 'Skipped');
     }
@@ -128,6 +157,13 @@ void main(List<String> args) {
         totalSteps,
         'Play Store Assets',
         'Saved 512x512 icon & 1024x500 banner',
+      );
+      Logger.subStep(
+        config.appName == null
+            ? 'Banner without app name (no "app_name" set)'
+            : config.playStoreTagline == null
+            ? 'Banner with app name'
+            : 'Banner with app name and tagline',
       );
     } else if (config.generatePlayStoreAssets) {
       Logger.step(

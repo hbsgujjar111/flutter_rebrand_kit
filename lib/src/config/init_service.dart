@@ -39,6 +39,12 @@ notification_icon_name: "ic_notification"
 # 4. Native Splash Screen
 splash_image: "assets/logo.png"
 splash_color: "#FFFFFF"
+# Optional: dark mode splash (Android, iOS, Web)
+# splash_dark_image: "assets/logo_dark.png"
+# splash_dark_color: "#0F0F0F"
+# Optional: branding footer image (wide PNG, about 800x320)
+# splash_branding_image: "assets/branding.png"
+# splash_branding_dark_image: "assets/branding_dark.png"
 
 # 5. Google Play Store Marketing Kit
 play_store:

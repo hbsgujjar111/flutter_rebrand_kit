@@ -1,4 +1,4 @@
-// Fixture-based tests for flutter_rebrand_kit 1.2.0.
+// Fixture-based tests for flutter_rebrand_kit 1.3.0.
 //
 // Every test builds a tiny Flutter-like project inside a temporary directory,
 // switches the working directory to it (the tool works on paths relative to
@@ -10,6 +10,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:flutter_rebrand_kit/src/config/config.dart';
 import 'package:flutter_rebrand_kit/src/image_service.dart';
 import 'package:flutter_rebrand_kit/src/metadata_service.dart';
 import 'package:flutter_rebrand_kit/src/splash/splash_service.dart';
@@ -68,6 +69,19 @@ void writeLogo({int width = 256, int height = 256}) {
     }
   }
   File('logo.png').writeAsBytesSync(img.encodePng(image));
+}
+
+/// Writes a PNG with a solid block inset by 20% on a transparent canvas.
+void writeBlock(String path, {int width = 200, int height = 100}) {
+  final image = img.Image(width: width, height: height, numChannels: 4);
+  final insetX = (width * 0.2).round();
+  final insetY = (height * 0.2).round();
+  for (int y = insetY; y < height - insetY; y++) {
+    for (int x = insetX; x < width - insetX; x++) {
+      image.setPixelRgba(x, y, 30, 144, 255, 255);
+    }
+  }
+  File(path).writeAsBytesSync(img.encodePng(image));
 }
 
 /// Writes a fully opaque PNG (no transparency) to `opaque.png`.
@@ -1078,6 +1092,394 @@ android {
       expect(updated, isNot(contains('red="1" green="1" blue="1"')));
     });
 
+    const fullStoryboard = r'''
+<document>
+  <scenes>
+    <scene>
+      <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+        <subviews>
+          <imageView image="LaunchImage" id="YRO-k0-Ey4"/>
+        </subviews>
+        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        <constraints>
+          <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
+        </constraints>
+      </view>
+    </scene>
+  </scenes>
+  <resources>
+    <image name="LaunchImage" width="168" height="185"/>
+  </resources>
+</document>
+''';
+
+    test('Android: dark mode and branding assets, drawables and styles', () {
+      writeLogo();
+      writeBlock('dark.png');
+      writeBlock('branding.png', width: 400, height: 160);
+      const res = 'android/app/src/main/res';
+      write('android/app/src/main/AndroidManifest.xml', _manifest);
+
+      final platforms = SplashService.generateNativeSplash(
+        'logo.png',
+        '#FFFFFF',
+        darkImagePath: 'dark.png',
+        darkHexColor: '#101010',
+        brandingImagePath: 'branding.png',
+      );
+      expect(platforms, ['Android']);
+
+      expect(decode('$res/drawable-xxxhdpi/splash_logo_dark.png').width, 1152);
+      expect(decode('$res/drawable-mdpi/splash_branding.png').width, 200);
+      expect(decode('$res/drawable-mdpi/splash_branding.png').height, 80);
+      expect(decode('$res/drawable-xxxhdpi/splash_branding.png').height, 320);
+      expect(
+        fileExists('$res/drawable-mdpi/splash_branding_dark.png'),
+        isFalse,
+      );
+
+      expect(
+        read('$res/values/colors.xml'),
+        contains('<color name="splash_color">#FFFFFF</color>'),
+      );
+      expect(
+        read('$res/values-night/colors.xml'),
+        contains('<color name="splash_color">#101010</color>'),
+      );
+
+      final light = read('$res/drawable/launch_background.xml');
+      expect(light, contains('@drawable/splash_logo"'));
+      expect(light, contains('@drawable/splash_branding'));
+      final night = read('$res/drawable-night/launch_background.xml');
+      expect(night, contains('@drawable/splash_logo_dark'));
+      expect(night, contains('@drawable/splash_branding'));
+
+      final v31 = read('$res/values-v31/styles.xml');
+      expect(v31, contains('android:windowSplashScreenBrandingImage'));
+      final nightV31 = read('$res/values-night-v31/styles.xml');
+      expect(nightV31, contains('@drawable/splash_logo_dark'));
+      expect(nightV31, contains('Theme.Black.NoTitleBar'));
+    });
+
+    test(
+      'Android: without a dark color the dark theme keeps the given color',
+      () {
+        writeLogo();
+        writeBlock('dark.png');
+        const res = 'android/app/src/main/res';
+        write('android/app/src/main/AndroidManifest.xml', _manifest);
+
+        SplashService.generateNativeSplash(
+          'logo.png',
+          '#336699',
+          darkImagePath: 'dark.png',
+        );
+
+        // No values-night color is written, so night mode resolves
+        // @color/splash_color to the configured color instead of black.
+        expect(fileExists('$res/values-night/colors.xml'), isFalse);
+        expect(
+          read('$res/values/colors.xml'),
+          contains('<color name="splash_color">#336699</color>'),
+        );
+        expect(
+          read('$res/values-night-v31/styles.xml'),
+          contains('@color/splash_color'),
+        );
+      },
+    );
+
+    test(
+      'Android: a dark Android 12 theme is added for projects with values-night',
+      () {
+        writeLogo();
+        const res = 'android/app/src/main/res';
+        write('$res/values-night/styles.xml', '''
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+    </style>
+</resources>
+''');
+
+        SplashService.generateNativeSplash('logo.png', '#FFFFFF');
+        final night = read('$res/values-night-v31/styles.xml');
+        expect(night, contains('android:windowSplashScreenAnimatedIcon'));
+        expect(night, contains('@drawable/splash_logo'));
+        expect(
+          fileExists('$res/drawable-night/launch_background.xml'),
+          isFalse,
+        );
+
+        // An existing values-night-v31 file is merged, not replaced.
+        write('$res/values-night-v31/styles.xml', '''
+<resources>
+    <style name="Other" parent="x"><item name="a">b</item></style>
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>
+''');
+        SplashService.generateNativeSplash('logo.png', '#FFFFFF');
+        final merged = read('$res/values-night-v31/styles.xml');
+        expect(merged, contains('<style name="Other"'));
+        expect(merged, contains('android:forceDarkAllowed'));
+        expect(merged, contains('android:windowSplashScreenBackground'));
+        expect('windowSplashScreenAnimatedIcon'.allMatches(merged).length, 1);
+      },
+    );
+
+    test('Android: no night theme without values-night or dark settings', () {
+      writeLogo();
+      const res = 'android/app/src/main/res';
+      write('android/app/src/main/AndroidManifest.xml', _manifest);
+
+      SplashService.generateNativeSplash('logo.png', '#FFFFFF');
+      expect(fileExists('$res/values-v31/styles.xml'), isTrue);
+      expect(fileExists('$res/values-night-v31/styles.xml'), isFalse);
+      expect(fileExists('$res/drawable-night/launch_background.xml'), isFalse);
+    });
+
+    test(
+      'Android: transparent margins are trimmed so the logo fills the circle',
+      () {
+        writeLogo(); // a disc that covers about 2/3 of a transparent canvas
+        write('android/app/src/main/AndroidManifest.xml', _manifest);
+
+        SplashService.generateNativeSplash('logo.png', '#FFFFFF');
+        final canvas = decode(
+          'android/app/src/main/res/drawable-xxxhdpi/splash_logo.png',
+        );
+        expect(canvas.width, 1152);
+
+        // Square artwork gets a diagonal of 188dp: about 133dp (532px) per side.
+        final visible = ImageUtils.trimTransparent(canvas);
+        expect(visible.width, inInclusiveRange(526, 538));
+        expect(visible.height, inInclusiveRange(526, 538));
+      },
+    );
+
+    test('iOS: dark images, light/dark background and branding image view', () {
+      writeLogo();
+      writeBlock('dark.png');
+      writeBlock('branding.png', width: 400, height: 160);
+      write('ios/Runner/Base.lproj/LaunchScreen.storyboard', fullStoryboard);
+
+      void run() => SplashService.generateNativeSplash(
+        'logo.png',
+        '#1E1E2E',
+        darkImagePath: 'dark.png',
+        darkHexColor: '#000000',
+        brandingImagePath: 'branding.png',
+      );
+      run();
+
+      const assets = 'ios/Runner/Assets.xcassets';
+      expect(decode('$assets/LaunchImage.imageset/LaunchImage.png').width, 150);
+      expect(
+        decode('$assets/LaunchImage.imageset/LaunchImageDark@3x.png').width,
+        450,
+      );
+      expect(
+        decode('$assets/BrandingImage.imageset/BrandingImage.png').width,
+        200,
+      );
+      expect(
+        decode('$assets/BrandingImage.imageset/BrandingImage@3x.png').width,
+        600,
+      );
+
+      final launch =
+          jsonDecode(read('$assets/LaunchImage.imageset/Contents.json'))
+              as Map<String, dynamic>;
+      final images = launch['images'] as List;
+      expect(images.length, 6);
+      expect(
+        images.where((i) => (i as Map).containsKey('appearances')).length,
+        3,
+      );
+
+      final colorSet =
+          jsonDecode(read('$assets/LaunchBackground.colorset/Contents.json'))
+              as Map<String, dynamic>;
+      expect((colorSet['colors'] as List).length, 2);
+
+      final storyboard = read('ios/Runner/Base.lproj/LaunchScreen.storyboard');
+      expect(
+        storyboard,
+        contains('<color key="backgroundColor" name="LaunchBackground"/>'),
+      );
+      expect(storyboard, contains('<namedColor name="LaunchBackground">'));
+      expect(storyboard, contains('image="BrandingImage"'));
+      expect(
+        storyboard,
+        contains('<image name="BrandingImage" width="200" height="80"/>'),
+      );
+      expect(storyboard, contains('Brn-bT-002'));
+
+      // Running again must not duplicate anything.
+      run();
+      final again = read('ios/Runner/Base.lproj/LaunchScreen.storyboard');
+      expect('image="BrandingImage"'.allMatches(again).length, 1);
+      expect('<namedColor'.allMatches(again).length, 1);
+      expect('Brn-cX-001'.allMatches(again).length, 1);
+    });
+
+    test('iOS: without a dark color the storyboard keeps the given color', () {
+      writeLogo();
+      writeBlock('dark.png');
+      write('ios/Runner/Base.lproj/LaunchScreen.storyboard', fullStoryboard);
+
+      SplashService.generateNativeSplash(
+        'logo.png',
+        '#1E1E2E',
+        darkImagePath: 'dark.png',
+      );
+
+      final updated = read('ios/Runner/Base.lproj/LaunchScreen.storyboard');
+      expect(updated, contains('red="0.11765"'));
+      expect(updated, isNot(contains('LaunchBackground')));
+      expect(
+        dirExists('ios/Runner/Assets.xcassets/LaunchBackground.colorset'),
+        isFalse,
+      );
+    });
+
+    test('iOS: a storyboard without constraints keeps working and warns', () {
+      writeLogo();
+      writeBlock('branding.png', width: 400, height: 160);
+      write('ios/Runner/Base.lproj/LaunchScreen.storyboard', storyboard);
+
+      SplashService.generateNativeSplash(
+        'logo.png',
+        '#1E1E2E',
+        brandingImagePath: 'branding.png',
+      );
+
+      expect(
+        fileExists(
+          'ios/Runner/Assets.xcassets/BrandingImage.imageset/BrandingImage.png',
+        ),
+        isTrue,
+      );
+      final updated = read('ios/Runner/Base.lproj/LaunchScreen.storyboard');
+      expect(updated, isNot(contains('image="BrandingImage"')));
+      expect(updated, contains('red="0.11765"'));
+    });
+
+    test('Web: overlay with dark mode is injected once and is replaceable', () {
+      writeLogo();
+      writeBlock('dark.png');
+      write(
+        'web/index.html',
+        '<!DOCTYPE html>\n<html>\n<head>\n  <title>app</title>\n</head>\n'
+            '<body class="x" data-a="1">\n'
+            '  <script src="flutter_bootstrap.js" async></script>\n'
+            '</body>\n</html>\n',
+      );
+
+      void run({String color = '#112233'}) =>
+          SplashService.generateNativeSplash(
+            'logo.png',
+            color,
+            darkImagePath: 'dark.png',
+            darkHexColor: '#000000',
+          );
+
+      run();
+      final html = read('web/index.html');
+      expect(
+        html,
+        contains(
+          '<body class="x" data-a="1">\n  <!-- rebrand_kit:splash-body:start -->',
+        ),
+      );
+      expect(html, contains('background-color: #112233'));
+      expect(html, contains('@media (prefers-color-scheme: dark)'));
+      expect(html, contains('#splash-screen { background-color: #000000; }'));
+      expect(html, contains('pointer-events: none'));
+      expect(html, contains('flutter-first-frame'));
+      expect(html, contains('splash/splash-dark.png'));
+      expect(fileExists('web/splash/splash.png'), isTrue);
+      expect(fileExists('web/splash/splash-dark.png'), isTrue);
+      expect(fileExists('web/splash/branding.png'), isFalse);
+
+      // Same input: identical result. New color: replaced, not duplicated.
+      run();
+      expect(read('web/index.html'), html);
+      run(color: '#445566');
+      final changed = read('web/index.html');
+      expect(changed, contains('background-color: #445566'));
+      expect(changed, isNot(contains('#112233')));
+      expect('id="splash-screen"'.allMatches(changed).length, 1);
+    });
+
+    test('Web: a page without head or body is left alone', () {
+      writeLogo();
+      write('web/index.html', '<html></html>');
+      expect(
+        SplashService.generateNativeSplash('logo.png', '#FFFFFF'),
+        isEmpty,
+      );
+      expect(read('web/index.html'), '<html></html>');
+    });
+
+    test('branding dark image without a branding image is ignored', () {
+      writeLogo();
+      writeBlock('branding.png', width: 400, height: 160);
+      write('android/app/src/main/AndroidManifest.xml', _manifest);
+
+      SplashService.generateNativeSplash(
+        'logo.png',
+        '#FFFFFF',
+        brandingDarkImagePath: 'branding.png',
+      );
+      expect(
+        fileExists(
+          'android/app/src/main/res/drawable-mdpi/splash_branding_dark.png',
+        ),
+        isFalse,
+      );
+    });
+
+    test(
+      'Android: removing dark and branding options cleans up references',
+      () {
+        writeLogo();
+        writeBlock('dark.png');
+        writeBlock('branding.png', width: 400, height: 160);
+        const res = 'android/app/src/main/res';
+        write('android/app/src/main/AndroidManifest.xml', _manifest);
+
+        SplashService.generateNativeSplash(
+          'logo.png',
+          '#FFFFFF',
+          darkImagePath: 'dark.png',
+          darkHexColor: '#101010',
+          brandingImagePath: 'branding.png',
+        );
+        SplashService.generateNativeSplash('logo.png', '#FFFFFF');
+
+        expect(fileExists('$res/drawable-mdpi/splash_logo_dark.png'), isFalse);
+        expect(fileExists('$res/drawable-mdpi/splash_branding.png'), isFalse);
+        expect(
+          fileExists('$res/drawable-night/launch_background.xml'),
+          isFalse,
+        );
+        expect(
+          read('$res/values-night/colors.xml'),
+          isNot(contains('splash_color')),
+        );
+        expect(
+          read('$res/values-v31/styles.xml'),
+          isNot(contains('BrandingImage')),
+        );
+        final night = read('$res/values-night-v31/styles.xml');
+        expect(night, isNot(contains('splash_logo_dark')));
+        expect(night, isNot(contains('BrandingImage')));
+      },
+    );
+
     test('does nothing without android/ or ios/', () {
       writeLogo();
       expect(
@@ -1086,6 +1488,97 @@ android {
       );
       expect(dirExists('android'), isFalse);
       expect(dirExists('ios'), isFalse);
+    });
+  });
+  group('Linux window icon', () {
+    const activate = r'''
+static void my_application_activate(GApplication* application) {
+  GtkWindow* window =
+      GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
+  gtk_window_set_title(window, "app");
+  gtk_window_set_default_size(window, 1280, 720);
+  gtk_widget_show(GTK_WIDGET(window));
+}
+''';
+
+    test('is installed by CMake and loaded next to the executable', () {
+      writeLogo();
+      write('linux/runner/my_application.cc', activate);
+      write(
+        'linux/CMakeLists.txt',
+        'set(INSTALL_BUNDLE_DATA_DIR "x")\n'
+            'set(APPLICATION_ID "com.example.app")\n',
+      );
+
+      void run() => ImageService.generateLauncherIcons(
+        iconPath: 'logo.png',
+        bgColorHex: '#FFFFFF',
+      );
+      run();
+
+      final cc = read('linux/runner/my_application.cc');
+      expect(
+        cc,
+        contains(
+          'gtk_window_set_icon_from_file(window, rebrand_icon, nullptr);',
+        ),
+      );
+      expect(cc, contains('"/proc/self/exe"'));
+      expect(cc, contains('gtk_window_set_default_size(window, 1280, 720);'));
+      expect(
+        cc.indexOf('gtk_window_set_icon_from_file'),
+        lessThan(cc.indexOf('gtk_window_set_default_size')),
+      );
+
+      final cmake = read('linux/CMakeLists.txt');
+      expect(cmake, contains('runner/assets/app_icon.png'));
+      expect(cmake, contains('INSTALL_BUNDLE_DATA_DIR'));
+
+      // Running again changes nothing.
+      run();
+      expect(read('linux/runner/my_application.cc'), cc);
+      expect(read('linux/CMakeLists.txt'), cmake);
+    });
+  });
+
+  group('Config and image helpers (1.3.0)', () {
+    test('splash dark and branding options are read from rebrand_kit.yaml', () {
+      write('rebrand_kit.yaml', '''
+splash_image: a.png
+splash_color: "#111111"
+splash_dark_image: d.png
+splash_dark_color: "#000000"
+splash_branding_image: b.png
+splash_branding_dark_image: c.png
+''');
+      final config = RebrandConfig.load();
+      expect(config.splashImage, 'a.png');
+      expect(config.splashDarkImage, 'd.png');
+      expect(config.splashDarkColor, '#000000');
+      expect(config.splashBrandingImage, 'b.png');
+      expect(config.splashBrandingDarkImage, 'c.png');
+    });
+
+    test('trimTransparent crops empty margins and keeps other images', () {
+      final image = img.Image(width: 100, height: 100, numChannels: 4);
+      for (int y = 40; y < 60; y++) {
+        for (int x = 30; x < 40; x++) {
+          image.setPixelRgba(x, y, 255, 0, 0, 255);
+        }
+      }
+      final trimmed = ImageUtils.trimTransparent(image);
+      expect(trimmed.width, 10);
+      expect(trimmed.height, 20);
+
+      final empty = img.Image(width: 8, height: 8, numChannels: 4);
+      expect(ImageUtils.trimTransparent(empty).width, 8);
+    });
+
+    test('fitDiagonal keeps the aspect ratio', () {
+      final source = img.Image(width: 200, height: 100, numChannels: 4);
+      final fitted = ImageUtils.fitDiagonal(source, 100);
+      expect(fitted.width, inInclusiveRange(88, 90));
+      expect(fitted.height, inInclusiveRange(44, 46));
     });
   });
 }

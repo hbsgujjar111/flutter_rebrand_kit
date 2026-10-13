@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.3.0
+
+### Added
+- **Dark mode splash:** `splash_dark_image` and `splash_dark_color` for Android (`values-night`, `drawable-night`, `values-night-v31`), iOS (dark `LaunchImage` appearances and a light/dark `LaunchBackground` color asset) and Web (`prefers-color-scheme`).
+- **Branding footer:** `splash_branding_image` and `splash_branding_dark_image` for Android (200x80 dp density assets, `windowSplashScreenBrandingImage`, pre-12 `launch_background`), iOS (`BrandingImage.imageset` plus an image view with Auto Layout constraints injected into `LaunchScreen.storyboard`) and Web.
+- **Web splash:** an overlay injected into `web/index.html` that follows the system dark mode, never blocks pointer events and removes itself on the `flutter-first-frame` event. Any `<body ...>` tag is supported, and re-running replaces the previous block.
+- **Linux window icon:** `linux/CMakeLists.txt` installs the generated icon to `<bundle>/data/app_icon.png` and `my_application.cc` loads it from the executable's folder, so the icon is bundled and found from any working directory.
+- **CLI output:** each step shows how long it took, and sub-step lines list the options in use (splash dark mode and branding, launcher icon background and monochrome icon, Play Store banner text).
+
+### Fixed
+- **Android 12+ in dark mode:** a `values-night-v31` theme is written (or merged) whenever the project has `values-night/styles.xml`. Previously `values-night` outranked `values-v31`, so the Android 12 splash settings were not applied in dark mode.
+- **Splash logo size:** transparent margins are trimmed before sizing, and the logo is fitted to the Android 12 circle by its diagonal instead of a fixed box, so logos with built-in padding are no longer small and wide logos are not clipped.
+- iOS launch logo is sized from the visible artwork, scaled correctly for @1x, @2x and @3x.
+
+### Changed
+- Without `splash_dark_color`, the dark theme keeps the configured splash color (it does not fall back to black).
+- `SplashService.generateNativeSplash` accepts optional named arguments for dark mode and branding. Existing calls keep working.
+
+---
+
 ## 1.2.0
 
 ### Added

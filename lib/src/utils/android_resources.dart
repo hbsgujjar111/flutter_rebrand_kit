@@ -10,12 +10,17 @@ class AndroidResources {
 
   static String get _mainDir => p.join('android', 'app', 'src', 'main');
 
-  /// Sets `<color name="[name]">[hex]</color>` in `res/values/colors.xml`.
+  /// Sets `<color name="[name]">[hex]</color>` in `res/[valuesFolder]/colors.xml`
+  /// (`values` by default, `values-night` for dark mode colors).
   ///
   /// Updates the entry when it already exists, otherwise inserts it, and keeps
   /// every other color in the file. Handles `<resources/>` self-closing files.
-  static void setColor(String name, String hex) {
-    final valuesDir = Directory(p.join(_mainDir, 'res', 'values'));
+  static void setColor(
+    String name,
+    String hex, {
+    String valuesFolder = 'values',
+  }) {
+    final valuesDir = Directory(p.join(_mainDir, 'res', valuesFolder));
     if (!valuesDir.existsSync()) {
       valuesDir.createSync(recursive: true);
     }
@@ -50,6 +55,20 @@ class AndroidResources {
     }
 
     file.writeAsStringSync(content, encoding: utf8);
+  }
+
+  /// Removes `<color name="[name]">` from `res/[valuesFolder]/colors.xml`
+  /// when present. Other colors are kept.
+  static void removeColor(String name, {String valuesFolder = 'values'}) {
+    final file = File(p.join(_mainDir, 'res', valuesFolder, 'colors.xml'));
+    if (!file.existsSync()) return;
+
+    final content = file.readAsStringSync(encoding: utf8);
+    final entry = RegExp(
+      '[ \\t]*<color\\s+name="${RegExp.escape(name)}"\\s*>[^<]*</color>[ \\t]*\\r?\\n?',
+    );
+    if (!entry.hasMatch(content)) return;
+    file.writeAsStringSync(content.replaceFirst(entry, ''), encoding: utf8);
   }
 
   /// Makes sure `<application>` references the generated launcher icons.

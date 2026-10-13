@@ -53,6 +53,76 @@ class ImageUtils {
     return image;
   }
 
+  /// Loads an image as 8-bit RGBA without squaring it or warning about its
+  /// size. Used for images whose aspect ratio matters (for example a wide
+  /// branding footer).
+  static img.Image loadImage(String path) {
+    final file = File(path);
+    if (!file.existsSync()) {
+      throw Exception('File not found at: $path');
+    }
+    final decoded = img.decodeImage(file.readAsBytesSync());
+    if (decoded == null) {
+      throw Exception('Unable to decode image at: $path');
+    }
+    return decoded.convert(format: img.Format.uint8, numChannels: 4);
+  }
+
+  /// Crops fully transparent margins so the visible artwork can be sized
+  /// precisely. Returns [image] unchanged when nothing can be trimmed.
+  ///
+  /// [image] must be 8-bit RGBA (see [loadImage]).
+  static img.Image trimTransparent(img.Image image, {int alphaThreshold = 8}) {
+    var minX = image.width;
+    var minY = image.height;
+    var maxX = -1;
+    var maxY = -1;
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        if (image.getPixel(x, y).a > alphaThreshold) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (maxX < 0) return image;
+
+    final width = maxX - minX + 1;
+    final height = maxY - minY + 1;
+    if (width == image.width && height == image.height) return image;
+    return img.copyCrop(image, x: minX, y: minY, width: width, height: height);
+  }
+
+  /// Scales [source] (keeping its aspect ratio) to fit inside
+  /// [maxWidth] x [maxHeight] pixels.
+  static img.Image fitInside(img.Image source, int maxWidth, int maxHeight) {
+    final scale = math.min(maxWidth / source.width, maxHeight / source.height);
+    return img.copyResize(
+      source,
+      width: math.max(1, (source.width * scale).round()),
+      height: math.max(1, (source.height * scale).round()),
+      interpolation: img.Interpolation.average,
+    );
+  }
+
+  /// Scales [source] (keeping its aspect ratio) so that its diagonal is
+  /// [diagonalPx] pixels. A rectangle with that diagonal always fits inside a
+  /// circle whose diameter is [diagonalPx].
+  static img.Image fitDiagonal(img.Image source, double diagonalPx) {
+    final diagonal = math.sqrt(
+      source.width * source.width + source.height * source.height,
+    );
+    final scale = diagonalPx / diagonal;
+    return img.copyResize(
+      source,
+      width: math.max(1, (source.width * scale).round()),
+      height: math.max(1, (source.height * scale).round()),
+      interpolation: img.Interpolation.average,
+    );
+  }
+
   /// Parses `#RGB`, `RGB`, `#RRGGBB` or `RRGGBB` into an [img.ColorRgb8].
   static img.ColorRgb8 parseHexColor(String hex) {
     final value = _hexValue(hex);

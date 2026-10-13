@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 
+import '../utils/linux_runtime_icon.dart';
+
 /// Generator for Linux desktop launcher icons.
 class LinuxIconGenerator {
   LinuxIconGenerator._();
@@ -48,8 +50,10 @@ class LinuxIconGenerator {
       dstY: ((size - iconSize) / 2).round(),
     );
 
-    File(
-      p.join(dir.path, 'app_icon.png'),
-    ).writeAsBytesSync(img.encodePng(canvas));
+    final iconFile = File(p.join(dir.path, 'app_icon.png'));
+    iconFile.writeAsBytesSync(img.encodePng(canvas));
+
+    // The default Linux runner never loads this icon; wire it up.
+    LinuxRuntimeIcon.link(iconFile);
   }
 }
